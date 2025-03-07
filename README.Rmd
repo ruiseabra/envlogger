@@ -18,37 +18,57 @@ knitr::opts_chunk$set(
 <!-- badges: start -->
 <!-- badges: end -->
 
-The goal of envlogger is to ...
+Functions to handle EnvLogger data, from reading, processing and plotting.  
+If data conforms to the CCTBON naming scheme, additional functionalities are available.
 
 ## Installation
 
-You can install the development version of envlogger like so:
+You can install the development version of **envlogger** from [GitHub](https://github.com/) with:
 
 ``` r
-# FILL THIS IN! HOW CAN PEOPLE INSTALL YOUR DEV PACKAGE?
+# install.packages("devtools")
+devtools::install_github("ruiseabra/envlogger")
 ```
 
-## Example
-
-This is a basic example which shows you how to solve a common problem:
-
-```{r example}
+## Load envlogger
+```{r load}
 library(envlogger)
-## basic example code
 ```
 
-What is special about using `README.Rmd` instead of just `README.md`? You can include R chunks like so:
-
-```{r cars}
-summary(cars)
+## read
+```{r read}
+# here we use the package's example data
+READ_ENV(env_example("nozzz"), just_rep = TRUE)
 ```
 
-You'll still need to render `README.Rmd` regularly, to keep `README.md` up-to-date. `devtools::build_readme()` is handy for this.
+## cctbon
 
-You can also embed plots, for example:
-
-```{r pressure, echo = FALSE}
-plot(pressure)
+If the dataset being read conforms to CCTBON guidelines, especially regarding to the logger naming scheme, additional information can be extraceted.
+```{r cctbon}
+# here we use the package's example data
+cctbon_id(READ_ENV(env_example("nozzz"), just_rep = TRUE))
 ```
 
-In that case, don't forget to commit and push the resulting figure files, so they display on GitHub and CRAN.
+## plot
+
+Envlogger data can be visualized very quickly with simple commands.
+
+```{r plot1}
+plot_env(
+  cctbon_data = env_example("ptzzw", no_logs = TRUE)[1], 
+  by_day = FALSE
+  )
+```
+
+When plotting complex datasets, `plot_env()` offers a great deal of customization through the use of several function parameters.
+```{r plot2}
+plot_env(
+  cctbon_data = env_example(c("nozzz", "ptzzy", "ptzzw")),
+  by_micro  = TRUE,
+  col_by    = "sh",
+  facet_row = "exp",
+  ribbon    = TRUE,
+  stat      = "q75",
+  roll_days = 7
+  )
+```
