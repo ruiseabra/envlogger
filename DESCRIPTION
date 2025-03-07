@@ -1,6 +1,6 @@
 Package: envlogger
 Type: Package
-Title:  Read, process and plot EnvLogger data
+Title: Read, process and plot EnvLogger data
 Version: 0.0.0.9000
 Authors@R: c(
     person("Rui", "Seabra", , "ptruimar@gmail.com", role = c("aut", "cre"),
@@ -29,3 +29,5 @@ Imports:
     tidyr,
     xts,
     zoo
+URL: https://github.com/ruiseabra/envlogger
+BugReports: https://github.com/ruiseabra/envlogger/issues
