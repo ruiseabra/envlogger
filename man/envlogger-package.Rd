@@ -8,6 +8,14 @@
 \description{
 Functions to handle EnvLogger data, from reading, processing and plotting. If data conforms to the CCTBON naming scheme, additional functionalities are available.
 }
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/ruiseabra/envlogger}
+  \item Report bugs at \url{https://github.com/ruiseabra/envlogger/issues}
+}
+
+}
 \author{
 \strong{Maintainer}: Rui Seabra \email{ptruimar@gmail.com} (\href{https://orcid.org/0000-0002-0240-3992}{ORCID})
 
