@@ -169,11 +169,12 @@ read_env_header <- function(
   header$field[header$field == "time diff [logger-smartphone](s)"] <- "time diff [logger-smartphone](sec)"
   if (!any(header$field == "device")) header <- tibble::add_row(header, field = "device", val = "missing")
   if (!any(header$field == "custom name")) header <- tibble::add_row(header, field = "custom name", val = "missing")
+  if (is.na(env_header_val(header, "envlogger viewer version", TRUE))) header$val[header$field == "envlogger viewer version"] <- 0
 
   header <- tibble::tibble(
     id       = env_header_val(header, "custom name"),
     serial   = env_header_val(header, "serial number"),
-    v_log    = env_header_val(header, "envlogger version", TRUE),
+    v_log    = env_header_val(header, "envlogger version"),
     v_app    = env_header_val(header, "envlogger viewer version", TRUE),
     pressure = any(grepl("pressure", header$field)),
     path     = path,
