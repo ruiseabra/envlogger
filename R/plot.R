@@ -161,9 +161,13 @@ plot_env <- function(
   }
 
   col_press <- c("temp" = "#F5191C", "press" = "#3B99B1")
+  col_hum   <- c("temp" = "#F5191C", "hum" = "#3B99B1")
 
   if (any(cctbon_data$pressure)) {
-    # if there's any pressure available, only those data are plotted
+    # if there's any pressure/humidity available, only those data are plotted
+    # pressure is preferential
+
+    # PRESSURE
     x <- cctbon_data %>%
       dplyr::filter(pressure) %>%
       tidyr::unnest(cols = "data")
@@ -221,8 +225,66 @@ plot_env <- function(
 
       p + ggplot2::theme_bw()
     }
+  } else if(any(cctbon_data$humidity)) {
+    # HUMIDITY
+    x <- cctbon_data %>%
+      dplyr::filter(humidity) %>%
+      tidyr::unnest(cols = "data")
+
+    if (dy) {
+      # hum dy ----
+
+      # make xts
+      x_xts <- x %>%
+        dplyr::select(t, id, temp, hum) %>%
+        tidyr::pivot_wider(names_from = id, values_from = c(temp, hum), names_sep = ".")
+      options(xts_check_TZ = FALSE)
+      x_xts <- xts::xts(dplyr::select(x_xts, -t), x_xts$t, tzone = "UTC")
+
+      # find the right colors for each column
+      cols <- x_xts %>%
+        zoo::coredata() %>%
+        colnames() %>%
+        stringr::str_split("\\.") %>%
+        purrr::map_chr(1)
+      cols <- col_press[cols] %>% unname()
+
+      # plot
+      dygraphs::dygraph(x_xts) %>%
+        dygraphs::dyRangeSelector() %>%
+        dygraphs::dyOptions(
+          colors = cols,
+          connectSeparatedPoints = TRUE,
+          stepPlot = FALSE
+        ) %>%
+        dygraphs::dyHighlight(highlightCircleSize = 5,
+                              highlightSeriesBackgroundAlpha = 0.75,
+                              hideOnMouseOut = FALSE) %>%
+        dygraphs::dyLegend(
+          show = "always",
+          width = 200,
+          labelsSeparateLines = TRUE,
+          hideOnMouseOut = FALSE)
+    } else {
+      # hum gg ----
+      x <- x %>%
+        tidyr::pivot_longer(
+          cols = c(temp, hum),
+          names_to = "type",
+          values_to = "val"
+        )
+
+      p <- ggplot2::ggplot(x, ggplot2::aes(t, val, group = id, col = type)) +
+        ggplot2::xlab("") +
+        ggplot2::ylab("") +
+        ggplot2::geom_line() +
+        ggplot2::scale_color_manual(values = col_hum, guide = "none") +
+        ggplot2::facet_grid(cols = ggplot2::vars(id), rows = ggplot2::vars(type), scale = "free_y")
+
+      p + ggplot2::theme_bw()
+    }
   } else {
-    # no pressure data available means that the plot can be more complex
+    # no pressure or humidity data available means that the plot can be more complex
     # first, data can be summarised
     x <- cctbon_summarise(
       cctbon_data,

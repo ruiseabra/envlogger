@@ -177,6 +177,7 @@ read_env_header <- function(
     v_log    = env_header_val(header, "envlogger version"),
     v_app    = env_header_val(header, "envlogger viewer version", TRUE),
     pressure = any(grepl("pressure", header$field)),
+    humidity = any(grepl("humidity", header$field)),
     path     = path,
     fn       = basename(path),
     nrow     = length(x) - skip - 1,
@@ -203,10 +204,11 @@ read_env_header <- function(
 #' @inheritParams read_env_header
 #' @param skip numeric; a value indicating how many rows to skip when reading the target EnvLogger report to skip the header (usually, the `$skip` column of the output from `read_env_header()`).
 #' @param pressure logical, defaults to `FALSE`; indicates if the data being read includes a pressure field.
+#' @param humidity logical, defaults to `FALSE`; indicates if the data being read includes a humidity field.
 #' @param zero_secs logical, defaults to `TRUE`; whether to remove trailing seconds (adjustment determined based on the first timestamp).
 #'
 #' @return
-#' A tibble with 2 columns (`t` and `temp`).
+#' A tibble with 2 columns (`t` and `temp`). If pressure or humidity data are available, those are returned as well.
 #'
 #' @export
 #'
@@ -219,6 +221,7 @@ read_env_data <- function(
     path,
     skip,
     pressure  = FALSE,
+    humidity  = FALSE,
     zero_secs = TRUE,
     check     = TRUE
     ) {
@@ -239,6 +242,11 @@ read_env_data <- function(
     data <- data %>%
       dplyr::rename(press = pressure) %>%
       dplyr::mutate(press = press * 0.010197)
+  }
+
+  if (humidity) {
+    data <- data %>%
+      dplyr::rename(hum = humidity)
   }
 
   if (zero_secs & nrow(data)) data <- dplyr::mutate(data, t = t - lubridate::second(t[1]))
@@ -371,6 +379,7 @@ read_env_all <- function(
       data <- read_env_data(path,
                               skip = header$skip,
                               pressure = header$pressure,
+                              humidity = header$humidity,
                               zero_secs = zero_secs,
                               check = FALSE)
 
@@ -413,6 +422,7 @@ read_env_all <- function(
 #' @param freq_mins numeric, defaults to `60`; interpolation interval in minutes.
 #' @param stop_if_error logical, defaults to `TRUE`; when there isn't enough data to interpolate to the provided freq_mins, should the operation terminate with an error, or issue a warning and output an empty tibble?
 #' @param dataset_has_pressure logical, defaults to `FALSE`; set to TRUE if `dat` includes pressure data
+#' @param dataset_has_humidity logical, defaults to `FALSE`; set to TRUE if `dat` includes humidity data
 #'
 #' @seealso [read_env_all()]
 #'
@@ -429,14 +439,16 @@ env_interpolate <- function(
     dat,
     freq_mins = 60,
     stop_if_error = TRUE,
-    dataset_has_pressure = FALSE
-    ) {
+    dataset_has_pressure = FALSE,
+    dataset_has_humidity = FALSE
+) {
   INT <- paste(freq_mins, "mins")
 
   t0 <- dat$t %>% dplyr::first() %>% lubridate::ceiling_date(INT)
   t1 <- dat$t %>% dplyr::last()  %>% lubridate::floor_date(INT)
 
   this_dat_has_pressure <- any(colnames(dat) == "press")
+  this_dat_has_humidity <- any(colnames(dat) == "hum")
 
   if (t0 < t1) {
     t_new <- seq.POSIXt(
@@ -463,12 +475,25 @@ env_interpolate <- function(
       rep(NA, length(t_new))
     }
 
+    hum <- if (this_dat_has_humidity) {
+      stats::approx(
+        x    = dat$t,
+        y    = dat$hum,
+        xout = t_new,
+        method = "linear"
+      )$y
+    } else {
+      rep(NA, length(t_new))
+    }
+
     x <- tibble::tibble(
       t     = t_new,
       temp  = temp,
-      press = press
+      press = press,
+      hum   = hum
     )
     if (!dataset_has_pressure) x <- dplyr::select(x, -press)
+    if (!dataset_has_humidity) x <- dplyr::select(x, -hum)
     x
   } else {
     msg <- "not enough data to interpolate to the provided freq_mins"
@@ -504,11 +529,14 @@ env_join_id <- function(dat) {
   if (nrow(dat)) {
     PRESS <- unique(dat$pressure)
     if (length(PRESS) != 1) cli::cli_abort(c("'dat' can't have entries with and without pressure data", "(choose one or the other)"))
+    HUM <- unique(dat$humidity)
+    if (length(HUM) != 1) cli::cli_abort(c("'dat' can't have entries with and without pressure data", "(choose one or the other)"))
 
     dat <- dat %>%
       dplyr::group_by(id) %>%
       dplyr::summarise(
         pressure = pressure[1],
+        humidity = humidity[1],
         serials  = paste(serial, collapse = ","),
         data = data %>%
           dplyr::bind_rows() %>%
@@ -519,7 +547,8 @@ env_join_id <- function(dat) {
                             dplyr::group_by(t) %>%
                             dplyr::summarise(
                               temp  = mean(temp),
-                              press = if (PRESS) mean(press) else NA
+                              press = if (PRESS) mean(press) else NA,
+                              hum   = if (HUM) mean(hum) else NA
                             )),
         t0 = min(t0),
         t1 = max(t0),
@@ -528,6 +557,7 @@ env_join_id <- function(dat) {
         .groups = "drop"
       )
     if (!PRESS) dat <- dplyr::mutate(dat, data = purrr::map(data, ~dplyr::select(.x, -press)))
+    if (!HUM)   dat <- dplyr::mutate(dat, data = purrr::map(data, ~dplyr::select(.x, -hum)))
   }
   dat
 }
@@ -601,13 +631,15 @@ READ_ENV <- function(
   if (nrow(x$rep)) x$rep <- dplyr::filter(x$rep, nrow > 1)
 
   if (bind_id) {
-    x_bind    <- dplyr::group_by(x$rep, id, pressure)
-    x_bind_t  <- dplyr::filter(x_bind, !pressure) %>% env_join_id()
-    x_bind_tp <- dplyr::filter(x_bind,  pressure) %>% env_join_id()
+    x_bind    <- dplyr::group_by(x$rep, id, pressure, humidity)
+    x_bind_t  <- dplyr::filter(x_bind, !pressure, !humidity) %>% env_join_id()
+    x_bind_tp <- dplyr::filter(x_bind,  pressure, !humidity) %>% env_join_id()
+    x_bind_th <- dplyr::filter(x_bind, !pressure,  humidity) %>% env_join_id()
 
     x$rep <- x_bind_t %>%
       dplyr::bind_rows(x_bind_tp) %>%
-      dplyr::select(id, serials, data, overlap, t0, t1, min, max, pressure)
+      dplyr::bind_rows(x_bind_th) %>%
+      dplyr::select(id, serials, data, overlap, t0, t1, min, max, pressure, humidity)
 
     if (any(x$rep$overlap)) cli::cli_warn("some timestamps weren't unique - consider editing the report files to remove overlapping data (but do so with caution!)")
   }
@@ -618,7 +650,8 @@ READ_ENV <- function(
       data = purrr::map(data,
                         env_interpolate,
                         stop_if_error = FALSE,
-                        dataset_has_pressure = any(x$rep$pressure))
+                        dataset_has_pressure = any(x$rep$pressure),
+                        dataset_has_humidity = any(x$rep$humidity))
     )
   }
 
