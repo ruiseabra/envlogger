@@ -6,10 +6,11 @@
 \usage{
 READ_ENV(
   paths,
-  zero_secs = TRUE,
+  zero_secs = FALSE,
   recursive = TRUE,
   read_data = TRUE,
   bind_id = TRUE,
+  correct_rtc_drift = TRUE,
   approx_hourly = TRUE,
   log_summary = TRUE,
   just_rep = FALSE
@@ -18,13 +19,15 @@ READ_ENV(
 \arguments{
 \item{paths}{paths to EnvLogger file(s) and/or folder(s) with EnvLogger data.}
 
-\item{zero_secs}{logical, defaults to \code{TRUE}; whether to remove trailing seconds (adjustment determined based on the first timestamp).}
+\item{zero_secs}{logical, defaults to \code{FALSE}; whether to remove trailing seconds (adjustment determined based on the first timestamp).}
 
 \item{recursive}{logical, defaults to \code{TRUE}; whether to search for EnvLogger files recursively or not.}
 
 \item{read_data}{logical, defaults to \code{TRUE}; whether to also read the data available on EnvLogger reports or to skip that step (quicker).}
 
 \item{bind_id}{logical, defaults to \code{TRUE}; wether to row_bind logger reports for the same id (information specific to individual report files is discarded)}
+
+\item{correct_rtc_drift}{logical, defaults to \code{TRUE}; if \code{TRUE}, logger data timestamps are stretched to account for the recorded clock drift}
 
 \item{approx_hourly}{logical, defaults to \code{TRUE}; if \code{TRUE}, logger data is interpolated to rounded hours (i.e., is made perfectly hourly and trimmed at the first and last days, to ensure that included days are complete; if \code{bind_id = TRUE}, trimming is executed after binding)}
 

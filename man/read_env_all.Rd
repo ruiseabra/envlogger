@@ -9,7 +9,7 @@ read_env_all(path, zero_secs = TRUE, read_data = TRUE, log_summary = FALSE)
 \arguments{
 \item{path}{path to an EnvLogger report or logfile}
 
-\item{zero_secs}{logical, defaults to \code{TRUE}; whether to remove trailing seconds (adjustment determined based on the first timestamp).}
+\item{zero_secs}{logical, defaults to \code{FALSE}; whether to remove trailing seconds (adjustment determined based on the first timestamp).}
 
 \item{read_data}{logical, defaults to \code{TRUE}; whether to also read the data available on EnvLogger reports or to skip that step (quicker).}
 

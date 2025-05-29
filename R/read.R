@@ -203,7 +203,7 @@ read_env_header <- function(
 #' @inheritParams read_env_header
 #' @param skip numeric; a value indicating how many rows to skip when reading the target EnvLogger report to skip the header (usually, the `$skip` column of the output from `read_env_header()`).
 #' @param pressure logical, defaults to `FALSE`; indicates if the data being read includes a pressure field.
-#' @param zero_secs logical, defaults to `TRUE`; whether to remove trailing seconds (adjustment determined based on the first timestamp).
+#' @param zero_secs logical, defaults to `FALSE`; whether to remove trailing seconds (adjustment determined based on the first timestamp).
 #'
 #' @return
 #' A tibble with 2 columns (`t` and `temp`).
@@ -219,7 +219,7 @@ read_env_data <- function(
     path,
     skip,
     pressure  = FALSE,
-    zero_secs = TRUE,
+    zero_secs = FALSE,
     check     = TRUE
     ) {
   if (check) {
@@ -404,6 +404,39 @@ read_env_all <- function(
   out
 }
 
+#' Correct RTC drift
+#'
+#' @description
+#' Perform linear interpolation to tidy EnvLogger data so that there's one reading every hour (00 mins, 00 secs) or other specified interval; !ALWAYS! apply before binding data from different reports, as otherwise the interpolation will generate artificial data filling any gap that may be present.
+#'
+#' @param dat a tibble with time (`t`) and temperature (`temp`), as the `$data` column in the output from [read_env_all()]
+#' @param tdiff numeric; difference in seconds between logger RTC time (obs) and smartphone time (ref) as `(obs - ref)`; if obs is ticking quicker than ref, `tdiff` is positive.
+#'
+#' @seealso [read_env_all()]
+#'
+#' @return
+#' The same tibble, but now with timestamps adjusted
+#'
+#' @export
+#'
+#' @examples
+#' path  <- env_example(no_logs = TRUE)[1]
+#' dat   <- read_env_all(path)$data[[1]]
+#' tdiff <- read_env_all(path)$tdiff[1]
+#' env_rtc_drift(dat, tdiff)
+env_rtc_drift <- function(
+    dat,
+    tdiff
+) {
+  t0 <- dat$t %>% dplyr::first()
+  t1 <- dat$t %>% dplyr::last()
+  t1 <- t1 - tdiff
+
+  dat$t <- seq(t0, t1, length.out = nrow(dat))
+
+  dat
+}
+
 #' Interpolate EnvLogger data
 #'
 #' @description
@@ -411,6 +444,7 @@ read_env_all <- function(
 #'
 #' @param dat a tibble with time (`t`) and temperature (`temp`), as the `$data` column in the output from [read_env_all()]
 #' @param freq_mins numeric, defaults to `60`; interpolation interval in minutes.
+#' @param margin numeric, defaults to `300`; if t0 is less than `margin` seconds after the rounded hour, t0 for interpolation is set to the rounded hour; otherwise, t0 is set to the next rounded hour. The equivalent is done for t1.
 #' @param stop_if_error logical, defaults to `TRUE`; when there isn't enough data to interpolate to the provided freq_mins, should the operation terminate with an error, or issue a warning and output an empty tibble?
 #' @param dataset_has_pressure logical, defaults to `FALSE`; set to TRUE if `dat` includes pressure data
 #'
@@ -428,13 +462,33 @@ read_env_all <- function(
 env_interpolate <- function(
     dat,
     freq_mins = 60,
+    margin = 5 * 60,
     stop_if_error = TRUE,
     dataset_has_pressure = FALSE
-    ) {
+) {
   INT <- paste(freq_mins, "mins")
 
-  t0 <- dat$t %>% dplyr::first() %>% lubridate::ceiling_date(INT)
-  t1 <- dat$t %>% dplyr::last()  %>% lubridate::floor_date(INT)
+  t0 <- dat$t %>% dplyr::first()
+  t0_rounded <- lubridate::floor_date(t0, INT)
+  t0_margin  <- t0 - t0_rounded
+  units(t0_margin) <- "secs"
+  t0_margin <- as.numeric(t0_margin)
+  t0 <- if (t0_margin < margin) {
+    t0_rounded
+  } else {
+    lubridate::ceiling_date(t0, INT)
+  }
+
+  t1 <- dat$t %>% dplyr::last()
+  t1_rounded <- lubridate::ceiling_date(t1, INT)
+  t1_margin  <- t1_rounded - t1
+  units(t1_margin) <- "secs"
+  t1_margin <- as.numeric(t1_margin)
+  t1 <- if (t1_margin < margin) {
+    t1_rounded
+  } else {
+    lubridate::floor_date(t1, INT)
+  }
 
   this_dat_has_pressure <- any(colnames(dat) == "press")
 
@@ -449,7 +503,8 @@ env_interpolate <- function(
       x    = dat$t,
       y    = dat$temp,
       xout = t_new,
-      method = "linear"
+      method = "linear",
+      rule = 2
     )$y
 
     press <- if (this_dat_has_pressure) {
@@ -457,7 +512,8 @@ env_interpolate <- function(
         x    = dat$t,
         y    = dat$press,
         xout = t_new,
-        method = "linear"
+        method = "linear",
+        rule = 2
       )$y
     } else {
       rep(NA, length(t_new))
@@ -542,6 +598,7 @@ env_join_id <- function(dat) {
 #' @param paths paths to EnvLogger file(s) and/or folder(s) with EnvLogger data.
 #' @param recursive logical, defaults to `TRUE`; whether to search for EnvLogger files recursively or not.
 #' @param bind_id logical, defaults to `TRUE`; wether to row_bind logger reports for the same id (information specific to individual report files is discarded)
+#' @param correct_rtc_drift logical, defaults to `TRUE`; if `TRUE`, logger data timestamps are stretched to account for the recorded clock drift
 #' @param approx_hourly logical, defaults to `TRUE`; if `TRUE`, logger data is interpolated to rounded hours (i.e., is made perfectly hourly and trimmed at the first and last days, to ensure that included days are complete; if `bind_id = TRUE`, trimming is executed after binding)
 #' @param just_rep logical, defaults to `FALSE`; if `FALSE`, a list of all reports and all logfile data is returned, while if `TRUE`, only the tibble with data from reports is returned.
 #'
@@ -557,10 +614,11 @@ env_join_id <- function(dat) {
 #' READ_ENV(paths, log_summary = TRUE)
 READ_ENV <- function(
     paths,
-    zero_secs = TRUE,
+    zero_secs = FALSE,
     recursive = TRUE,
     read_data = TRUE,
     bind_id   = TRUE,
+    correct_rtc_drift = TRUE,
     approx_hourly = TRUE,
     log_summary   = TRUE,
     just_rep      = FALSE
@@ -600,6 +658,31 @@ READ_ENV <- function(
   # discard reports without data
   if (nrow(x$rep)) x$rep <- dplyr::filter(x$rep, nrow > 1)
 
+  # correct clock drift
+  # drift = logger - smartphone
+  # pos -> logger time was faster -> timestamps must be reduced
+  # neg -> logger time was slower -> timestamps must be increased
+  if (correct_rtc_drift) {
+    x$rep <- dplyr::mutate(x$rep,
+                           data = purrr::map2(
+                             data,
+                             tdiff,
+                             ~env_rtc_drift(.x, .y)
+                             )
+                           )
+  }
+
+  # interpolate hourly
+  if (approx_hourly) {
+    x$rep <- dplyr::mutate(
+      x$rep,
+      data = purrr::map(data,
+                        env_interpolate,
+                        stop_if_error = FALSE,
+                        dataset_has_pressure = any(x$rep$pressure))
+    )
+  }
+
   if (bind_id) {
     x_bind    <- dplyr::group_by(x$rep, id, pressure)
     x_bind_t  <- dplyr::filter(x_bind, !pressure) %>% env_join_id()
@@ -612,15 +695,9 @@ READ_ENV <- function(
     if (any(x$rep$overlap)) cli::cli_warn("some timestamps weren't unique - consider editing the report files to remove overlapping data (but do so with caution!)")
   }
 
-  if (approx_hourly) {
-    x$rep <- dplyr::mutate(
-      x$rep,
-      data = purrr::map(data,
-                        env_interpolate,
-                        stop_if_error = FALSE,
-                        dataset_has_pressure = any(x$rep$pressure))
-    )
-  }
+  x$rep <- x$rep %>%
+    dplyr::mutate(xts = purrr::map(data, ~xts::xts(dplyr::select(.x, -t), .x$t, tzone = "UTC"))) %>%
+    dplyr::relocate(xts, .after = data)
 
   if (just_rep) x$rep else x
 }

@@ -4,7 +4,7 @@
 \alias{read_env_data}
 \title{Read the data from an EnvLogger report}
 \usage{
-read_env_data(path, skip, pressure = FALSE, zero_secs = TRUE, check = TRUE)
+read_env_data(path, skip, pressure = FALSE, zero_secs = FALSE, check = TRUE)
 }
 \arguments{
 \item{path}{path to an EnvLogger report}
@@ -13,7 +13,7 @@ read_env_data(path, skip, pressure = FALSE, zero_secs = TRUE, check = TRUE)
 
 \item{pressure}{logical, defaults to \code{FALSE}; indicates if the data being read includes a pressure field.}
 
-\item{zero_secs}{logical, defaults to \code{TRUE}; whether to remove trailing seconds (adjustment determined based on the first timestamp).}
+\item{zero_secs}{logical, defaults to \code{FALSE}; whether to remove trailing seconds (adjustment determined based on the first timestamp).}
 
 \item{check}{logical, defaults to \code{TRUE}; whether or not to check if \code{path} points to an EnvLogger report. Only meant to be \code{FALSE} when called from within \code{read_env_all()}, so as not to repeat the same check multiple times. \strong{Do not set it to \code{FALSE} when running this function directly.}
 #'}
