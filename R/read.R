@@ -747,7 +747,9 @@ READ_ENV <- function(
                 dirname(x$rep$path) == corr_folder
             )
 
-            if (length(target) != 1) cli::cli_abort(c("mismatch in RTC corrections file in folder:", corr_folder))
+            if (length(target) != 1) cli::cli_abort(c("mismatch in RTC corrections file in folder:", corr_folder, "--> issue: incorrect number of matching targets"))
+
+            if (stringr::str_detect(x$rep$id[target], corrs$site[r], negate = TRUE)) cli::cli_abort(c("mismatch in RTC corrections file in folder:", corr_folder, "--> issue: different site names"))
 
             # time_offset
             time_offset <- corrs$time_offset[r]
