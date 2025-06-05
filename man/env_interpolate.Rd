@@ -7,6 +7,7 @@
 env_interpolate(
   dat,
   freq_mins = 60,
+  margin = 5 * 60,
   stop_if_error = TRUE,
   dataset_has_pressure = FALSE
 )
@@ -15,6 +16,8 @@ env_interpolate(
 \item{dat}{a tibble with time (\code{t}) and temperature (\code{temp}), as the \verb{$data} column in the output from \code{\link[=read_env_all]{read_env_all()}}}
 
 \item{freq_mins}{numeric, defaults to \code{60}; interpolation interval in minutes.}
+
+\item{margin}{numeric, defaults to \code{300}; if t0 is less than \code{margin} seconds after the rounded hour, t0 for interpolation is set to the rounded hour; otherwise, t0 is set to the next rounded hour. The equivalent is done for t1.}
 
 \item{stop_if_error}{logical, defaults to \code{TRUE}; when there isn't enough data to interpolate to the provided freq_mins, should the operation terminate with an error, or issue a warning and output an empty tibble?}
 

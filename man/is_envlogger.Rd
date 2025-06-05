@@ -2,7 +2,7 @@
 % Please edit documentation in R/read.R
 \name{is_envlogger}
 \alias{is_envlogger}
-\title{Check if a path points to an EnvLogger file, logfile or none of the two}
+\title{Check if a path points to an EnvLogger file, logfile, corrections file or none of the three}
 \usage{
 is_envlogger(paths)
 }
@@ -10,10 +10,10 @@ is_envlogger(paths)
 \item{paths}{character vectors representing the file paths to one or several files}
 }
 \value{
-Numeric vector indicating the type of file encountered: \code{1} if an EnvLogger file, \code{2} if an EnvLogger logfile, and \code{0} if none of the two.
+Numeric vector indicating the type of file encountered: \code{1} if an EnvLogger file, \code{2} if an EnvLogger logfile, \code{3} if an user-produced rtc correction file, and \code{0} if none of the three
 }
 \description{
-Determine if the paths provided point to EnvLogger files.
+Determine if the paths provided point to EnvLogger or related files.
 This is done by checking for the presence of certain strings in the header of each file (such as "www.electricblue.eu, Portugal").
 As a result, reports generated using the the earliest versions of EnvLogger_Viewer will not be recognized.
 Also, if the structure of a file has been changed (e.g., by opening and saving in Excel), it may no longer be recognized as a report or logfile.

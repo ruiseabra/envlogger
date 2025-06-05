@@ -11,6 +11,7 @@ READ_ENV(
   read_data = TRUE,
   bind_id = TRUE,
   correct_rtc_drift = TRUE,
+  use_rtc_correction_file = TRUE,
   approx_hourly = TRUE,
   log_summary = TRUE,
   just_rep = FALSE
@@ -28,6 +29,8 @@ READ_ENV(
 \item{bind_id}{logical, defaults to \code{TRUE}; wether to row_bind logger reports for the same id (information specific to individual report files is discarded)}
 
 \item{correct_rtc_drift}{logical, defaults to \code{TRUE}; if \code{TRUE}, logger data timestamps are stretched to account for the recorded clock drift}
+
+\item{use_rtc_correction_file}{logical, defaults to \code{TRUE}; if \code{TRUE}, whenever a properly-formatted rtc corrections file is found inside of a data folder, those corretions are read and applied}
 
 \item{approx_hourly}{logical, defaults to \code{TRUE}; if \code{TRUE}, logger data is interpolated to rounded hours (i.e., is made perfectly hourly and trimmed at the first and last days, to ensure that included days are complete; if \code{bind_id = TRUE}, trimming is executed after binding)}
 

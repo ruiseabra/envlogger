@@ -52,10 +52,10 @@ env_example <- function(
   files
 }
 
-#' Check if a path points to an EnvLogger file, logfile or none of the two
+#' Check if a path points to an EnvLogger file, logfile, corrections file or none of the three
 #'
 #' @description
-#' Determine if the paths provided point to EnvLogger files.
+#' Determine if the paths provided point to EnvLogger or related files.
 #' This is done by checking for the presence of certain strings in the header of each file (such as "www.electricblue.eu, Portugal").
 #' As a result, reports generated using the the earliest versions of EnvLogger_Viewer will not be recognized.
 #' Also, if the structure of a file has been changed (e.g., by opening and saving in Excel), it may no longer be recognized as a report or logfile.
@@ -63,7 +63,7 @@ env_example <- function(
 #' @param paths character vectors representing the file paths to one or several files
 #'
 #' @return
-#' Numeric vector indicating the type of file encountered: `1` if an EnvLogger file, `2` if an EnvLogger logfile, and `0` if none of the two.
+#' Numeric vector indicating the type of file encountered: `1` if an EnvLogger file, `2` if an EnvLogger logfile, `3` if an user-produced rtc correction file, and `0` if none of the three
 #'
 #' @export
 #'
@@ -82,17 +82,19 @@ is_envlogger <- function(
                     readr::read_lines(n_max = 20) %>%
                     stringr::str_to_lower())
 
-  has_eb        <- purrr::map_lgl(x, ~any(stringr::str_detect(.x, "www.electricblue.eu")))
-  has_envlogger <- purrr::map_lgl(x, ~any(stringr::str_detect(.x, "envlogger")))
-  has_tap       <- purrr::map_lgl(x, ~any(stringr::str_detect(.x, "tap logger")))
-  has_download  <- purrr::map_lgl(x, ~any(stringr::str_detect(.x, "data downloaded")))
-  has_mission   <- purrr::map_lgl(x, ~any(stringr::str_detect(.x, "mission running")))
-  has_waiting   <- purrr::map_lgl(x, ~any(stringr::str_detect(.x, "waiting to start")))
+  has_eb         <- purrr::map_lgl(x, ~any(stringr::str_detect(.x, "www.electricblue.eu")))
+  has_envlogger  <- purrr::map_lgl(x, ~any(stringr::str_detect(.x, "envlogger")))
+  has_tap        <- purrr::map_lgl(x, ~any(stringr::str_detect(.x, "tap logger")))
+  has_download   <- purrr::map_lgl(x, ~any(stringr::str_detect(.x, "data downloaded")))
+  has_mission    <- purrr::map_lgl(x, ~any(stringr::str_detect(.x, "mission running")))
+  has_waiting    <- purrr::map_lgl(x, ~any(stringr::str_detect(.x, "waiting to start")))
+  is_corrections <- purrr::map_lgl(x, ~any(stringr::str_detect(.x, "corrections")))
 
   # combine
   val <- rep(0, length(x))
   val[has_eb & has_envlogger] <- 1
   val[has_tap | has_download | has_mission | has_waiting] <- 2
+  val[is_corrections] <- 3
 
   # return
   val
@@ -121,7 +123,7 @@ env_header_val <- function(
     ) {
   val <- header$val[header$field == field_pattern]
   if (length(val) != 1) stop("'field_pattern' must match no more and no less than 1 time")
-  if (force_numeric) val <- val %>% stringr::str_remove_all("[^0-9.]") %>% as.numeric()
+  if (force_numeric) val <- val %>% stringr::str_remove_all("[^-0-9.]") %>% as.numeric()
   val
 }
 
@@ -270,7 +272,7 @@ read_env_log <- function(
     path,
     log_summary = FALSE,
     check = TRUE
-    ) {
+) {
   if (check) {
     not_report <- is_envlogger(path) != 2
     if (not_report) cli::cli_abort("not an EnvLogger logfile")
@@ -330,6 +332,61 @@ read_env_log <- function(
   log
 }
 
+
+#' Read an RTC corrections file
+#'
+#' @description
+#' Given a file path, check if it points to an user-provided, correctly formatted RTC corrections file and, if `TRUE`, read it.
+#'
+#' @inheritParams read_env_header
+#' @param path path to an user-provided RTC corrections file
+#'
+#' @return
+#' A tibble with RTC correction parameters.
+#'
+#' @export
+#'
+#' @seealso [read_env_header()], [read_env_data()], [read_env_all()]
+#'
+#' @examples
+#' path <- env_example("corrr_")[1]
+#' read_env_rtc(path)
+read_env_rtc <- function(
+    path,
+    check = TRUE
+) {
+  if (check) {
+    not_report <- is_envlogger(path) != 3
+    if (not_report) cli::cli_abort("not an RTC corrections file")
+  }
+
+  rtc <- path %>%
+    readr::read_csv(
+      skip = 2,
+      show_col_types = FALSE) %>%
+    dplyr::mutate(
+      site   = stringr::str_to_lower(site),
+      serial = stringr::str_to_lower(serial)
+      ) %>%
+    tibble::add_column(path = path)
+
+  # confirm that the corrections file is consistent:
+  # --> only one date on values
+  # --> date on filename == date on folder == date on values
+  dates   <- unique(rtc$date)
+  date_1  <- dplyr::first(dates)
+  date_fn <- path %>%
+    basename() %>%
+    stringr::str_remove_all("[^0-9]") %>%
+    as.Date(format = "%Y%m%d")
+
+  if (length(dates) != 1 | date_1 != date_fn) cli::cli_abort(c("RTC corrections file dates aren't consistent: ", path))
+
+  # return
+  rtc
+}
+
+
 #' Read an EnvLogger report or logfile
 #'
 #' @description
@@ -354,13 +411,16 @@ read_env_log <- function(
 #'
 #' path <- env_example("log_")[1]
 #' read_env_all(path) # an EnvLogger logfile
+#'
+#' path <- env_example("corrr_")[1]
+#' read_env_all(path) # an RTC corrections file
 read_env_all <- function(
     path,
-    zero_secs   = TRUE,
+    zero_secs   = FALSE,
     read_data   = TRUE,
     log_summary = FALSE
     ) {
-  env_example("ptcnt")
+
   env_status <- is_envlogger(path)
   if (!env_status) cli::cli_abort("not an EnvLogger report or logfile")
 
@@ -396,8 +456,10 @@ read_env_all <- function(
       header <- dplyr::relocate(header, id, serial, data, min, max, t0, t1)
     }
     out <- header
-  } else {
+  } else if (env_status == 2) {
     out <- read_env_log(path, log_summary = log_summary, check = FALSE)
+  } else {
+    out <- read_env_rtc(path, check = FALSE)
   }
 
   # return
@@ -599,6 +661,7 @@ env_join_id <- function(dat) {
 #' @param recursive logical, defaults to `TRUE`; whether to search for EnvLogger files recursively or not.
 #' @param bind_id logical, defaults to `TRUE`; wether to row_bind logger reports for the same id (information specific to individual report files is discarded)
 #' @param correct_rtc_drift logical, defaults to `TRUE`; if `TRUE`, logger data timestamps are stretched to account for the recorded clock drift
+#' @param use_rtc_correction_file logical, defaults to `TRUE`; if `TRUE`, whenever a properly-formatted rtc corrections file is found inside of a data folder, those corretions are read and applied
 #' @param approx_hourly logical, defaults to `TRUE`; if `TRUE`, logger data is interpolated to rounded hours (i.e., is made perfectly hourly and trimmed at the first and last days, to ensure that included days are complete; if `bind_id = TRUE`, trimming is executed after binding)
 #' @param just_rep logical, defaults to `FALSE`; if `FALSE`, a list of all reports and all logfile data is returned, while if `TRUE`, only the tibble with data from reports is returned.
 #'
@@ -619,6 +682,7 @@ READ_ENV <- function(
     read_data = TRUE,
     bind_id   = TRUE,
     correct_rtc_drift = TRUE,
+    use_rtc_correction_file = TRUE,
     approx_hourly = TRUE,
     log_summary   = TRUE,
     just_rep      = FALSE
@@ -635,7 +699,9 @@ READ_ENV <- function(
     x %>%
       dplyr::filter(!isdir) %>%
       dplyr::pull(path)
-  )
+  ) %>%
+    stringr::str_to_lower() %>%
+    stringr::str_subset("csv")
 
   # check file type
   x <- tibble::tibble(
@@ -652,11 +718,73 @@ READ_ENV <- function(
     log = x %>%
       dplyr::filter(type == 2) %>%
       dplyr::pull(path) %>%
-      purrr::map_dfr(~read_env_all(.x, log_summary = log_summary))
+      purrr::map_dfr(~read_env_all(.x, log_summary = log_summary)),
+    rtc = x %>%
+      dplyr::filter(type == 3) %>%
+      dplyr::pull(path) %>%
+      purrr::map_dfr(~read_env_all(.x))
   )
 
   # discard reports without data
   if (nrow(x$rep)) x$rep <- dplyr::filter(x$rep, nrow > 1)
+
+  # if available apply RTC corrections
+  # (this MUST take place BEFORE correcting clock drift)
+  if (read_data) {
+    if (!is.null(x$rtc)) {
+      if (nrow(x$rtc)) {
+        # time_offset is added to all timestamps
+        # diff_offset is added to tdiff
+        corr_folders <- x$rtc$path %>% dirname() %>% unique()
+
+        for (p in seq_along(corr_folders)) {
+          corr_folder <- corr_folders[p]
+          corrs <- dplyr::filter(x$rtc, dirname(path) == corr_folder)
+
+          for (r in seq_along(corrs$serial)) {
+            target <- which(
+              x$rep$serial == corrs$serial[r] &
+                dirname(x$rep$path) == corr_folder
+            )
+
+            if (length(target) != 1) cli::cli_abort(c("mismatch in RTC corrections file in folder:", corr_folder))
+
+            # time_offset
+            time_offset <- corrs$time_offset[r]
+            x$rep$data[[target]] <- x$rep$data[[target]] %>%
+              dplyr::mutate(t = t + time_offset)
+
+            # diff_offset
+            diff_offset <- corrs$diff_offset[r]
+            x$rep$tdiff[target] <- x$rep$tdiff[target] + diff_offset
+          }
+        }
+      }
+    }
+  }
+
+  # in some (many cases), tdiff was calculated wrongly by the EnvLogger Viewer app and written into EnvLogger report files
+  # the mistake involved subtracting the obs to the ref (ref - obs), instead of the opposite, which is the correct way
+  # this error took place despite the description of the field in the header of EnvLogger report files still explicitly indicating that tdiff was the result of obs - ref
+  # this affects report files that were produced under all of the following conditions:
+  # - device running EnvLogger Viewer is an Android
+  # - EnvLogger Viewer version prior or equal to 6.2
+  # -> if logger only records temperature, logger version greater than 2.4, or...
+  # -> if logger records additional variables, any logger version
+  x$rep <- x$rep %>%
+    dplyr::mutate(
+      is_android = dev_type == "android",
+      is_old_app = v_app <= 6.2,
+      is_just_t  = stringr::str_remove_all(v_log, "[0-9.]") == "t",
+      is_v2.4    = v_log %>%
+        stringr::str_remove_all("[^0-9.]") %>%
+        as.numeric() %>%
+        "<="(2.4),
+      fix = is_android & is_old_app & ((is_just_t & !is_v2.4) | !is_just_t),
+      tdiff = ifelse(fix, -tdiff, tdiff)
+    ) %>%
+    dplyr::select(-is_android, -is_old_app, -is_just_t, -is_v2.4, -fix)
+
 
   # correct clock drift
   # drift = logger - smartphone

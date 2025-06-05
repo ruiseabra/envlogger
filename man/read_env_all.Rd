@@ -4,7 +4,7 @@
 \alias{read_env_all}
 \title{Read an EnvLogger report or logfile}
 \usage{
-read_env_all(path, zero_secs = TRUE, read_data = TRUE, log_summary = FALSE)
+read_env_all(path, zero_secs = FALSE, read_data = TRUE, log_summary = FALSE)
 }
 \arguments{
 \item{path}{path to an EnvLogger report or logfile}
@@ -27,6 +27,9 @@ read_env_all(path, zero_secs = TRUE) # an EnvLogger file
 
 path <- env_example("log_")[1]
 read_env_all(path) # an EnvLogger logfile
+
+path <- env_example("corrr_")[1]
+read_env_all(path) # an RTC corrections file
 }
 \seealso{
 \code{\link[=read_env_header]{read_env_header()}}, \code{\link[=read_env_data]{read_env_data()}}, \code{\link[=read_env_log]{read_env_log()}}, \code{\link[=plot_env]{plot_env()}}

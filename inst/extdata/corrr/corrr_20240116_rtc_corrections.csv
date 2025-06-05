@@ -1,0 +1,5 @@
+rtc_corrections
+------------------------------
+site,date,serial,time_offset,diff_offset
+corrr,2024-01-16,04B0 6000 8F00 06,3600,-3600
+corrr,2024-01-16,0434 EF00 4B29 0A,3600,3600
