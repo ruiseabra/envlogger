@@ -640,7 +640,7 @@ env_join_id <- function(dat) {
                               press = if (PRESS) mean(press) else NA
                             )),
         t0 = min(t0),
-        t1 = max(t0),
+        t1 = max(t1),
         min = min(min),
         max = max(max),
         .groups = "drop"
@@ -663,6 +663,7 @@ env_join_id <- function(dat) {
 #' @param correct_rtc_drift logical, defaults to `TRUE`; if `TRUE`, logger data timestamps are stretched to account for the recorded clock drift
 #' @param use_rtc_correction_file logical, defaults to `TRUE`; if `TRUE`, whenever a properly-formatted rtc corrections file is found inside of a data folder, those corretions are read and applied
 #' @param approx_hourly logical, defaults to `TRUE`; if `TRUE`, logger data is interpolated to rounded hours (i.e., is made perfectly hourly and trimmed at the first and last days, to ensure that included days are complete; if `bind_id = TRUE`, trimming is executed after binding)
+#' @param full_days logical, defaults to `FALSE`; if `TRUE`, logger data is only kept for days in which all data points were collected.
 #' @param just_rep logical, defaults to `FALSE`; if `FALSE`, a list of all reports and all logfile data is returned, while if `TRUE`, only the tibble with data from reports is returned.
 #'
 #' @seealso [read_env_all()], [read_env_header()], [read_env_data()], [read_env_log()], [plot_env()]
@@ -684,6 +685,7 @@ READ_ENV <- function(
     correct_rtc_drift = TRUE,
     use_rtc_correction_file = TRUE,
     approx_hourly = TRUE,
+    full_days     = FALSE,
     log_summary   = TRUE,
     just_rep      = FALSE
     ) {
@@ -728,106 +730,128 @@ READ_ENV <- function(
   # discard reports without data
   if (nrow(x$rep)) x$rep <- dplyr::filter(x$rep, nrow > 1)
 
-  # if available apply RTC corrections
-  # (this MUST take place BEFORE correcting clock drift)
-  if (read_data) {
-    if (!is.null(x$rtc)) {
-      if (nrow(x$rtc)) {
-        # time_offset is added to all timestamps
-        # diff_offset is added to tdiff
-        corr_folders <- x$rtc$path %>% dirname() %>% unique()
+  if (nrow(x$rep)) {
+    # if available apply RTC corrections
+    # (this MUST take place BEFORE correcting clock drift)
+    if (read_data) {
+      if (!is.null(x$rtc)) {
+        if (nrow(x$rtc)) {
+          # time_offset is added to all timestamps
+          # diff_offset is added to tdiff
+          corr_folders <- x$rtc$path %>% dirname() %>% unique()
 
-        for (p in seq_along(corr_folders)) {
-          corr_folder <- corr_folders[p]
-          corrs <- dplyr::filter(x$rtc, dirname(path) == corr_folder)
+          for (p in seq_along(corr_folders)) {
+            corr_folder <- corr_folders[p]
+            corrs <- dplyr::filter(x$rtc, dirname(path) == corr_folder)
 
-          for (r in seq_along(corrs$serial)) {
-            target <- which(
-              x$rep$serial == corrs$serial[r] &
-                dirname(x$rep$path) == corr_folder
-            )
+            for (r in seq_along(corrs$serial)) {
+              target <- which(
+                x$rep$serial == corrs$serial[r] &
+                  dirname(x$rep$path) == corr_folder
+              )
 
-            if (length(target) != 1) cli::cli_abort(c("mismatch in RTC corrections file in folder:", corr_folder, "--> issue: incorrect number of matching targets"))
+              if (length(target) != 1) cli::cli_abort(c("mismatch in RTC corrections file in folder:", corr_folder, "--> issue: incorrect number of matching targets"))
 
-            if (stringr::str_detect(x$rep$id[target], corrs$site[r], negate = TRUE)) cli::cli_abort(c("mismatch in RTC corrections file in folder:", corr_folder, "--> issue: different site names"))
+              if (stringr::str_detect(x$rep$id[target], corrs$site[r], negate = TRUE)) cli::cli_abort(c("mismatch in RTC corrections file in folder:", corr_folder, "--> issue: different site names"))
 
-            # time_offset
-            time_offset <- corrs$time_offset[r]
-            x$rep$data[[target]] <- x$rep$data[[target]] %>%
-              dplyr::mutate(t = t + time_offset)
+              # time_offset
+              time_offset <- corrs$time_offset[r]
+              x$rep$data[[target]] <- x$rep$data[[target]] %>%
+                dplyr::mutate(t = t + time_offset)
 
-            # diff_offset
-            diff_offset <- corrs$diff_offset[r]
-            x$rep$tdiff[target] <- x$rep$tdiff[target] + diff_offset
+              # diff_offset
+              diff_offset <- corrs$diff_offset[r]
+              x$rep$tdiff[target] <- x$rep$tdiff[target] + diff_offset
+            }
           }
         }
       }
     }
-  }
 
-  # in some (many cases), tdiff was calculated wrongly by the EnvLogger Viewer app and written into EnvLogger report files
-  # the mistake involved subtracting the obs to the ref (ref - obs), instead of the opposite, which is the correct way
-  # this error took place despite the description of the field in the header of EnvLogger report files still explicitly indicating that tdiff was the result of obs - ref
-  # this affects report files that were produced under all of the following conditions:
-  # - device running EnvLogger Viewer is an Android
-  # - EnvLogger Viewer version prior or equal to 6.2
-  # -> if logger only records temperature, logger version greater than 2.4, or...
-  # -> if logger records additional variables, any logger version
-  x$rep <- x$rep %>%
-    dplyr::mutate(
-      is_android = dev_type == "android",
-      is_old_app = v_app <= 6.2,
-      is_just_t  = stringr::str_remove_all(v_log, "[0-9.]") == "t",
-      is_v2.4    = v_log %>%
-        stringr::str_remove_all("[^0-9.]") %>%
-        as.numeric() %>%
-        "<="(2.4),
-      fix = is_android & is_old_app & ((is_just_t & !is_v2.4) | !is_just_t),
-      tdiff = ifelse(fix, -tdiff, tdiff)
-    ) %>%
-    dplyr::select(-is_android, -is_old_app, -is_just_t, -is_v2.4, -fix)
+    # in some (many cases), tdiff was calculated wrongly by the EnvLogger Viewer app and written into EnvLogger report files
+    # the mistake involved subtracting the obs to the ref (ref - obs), instead of the opposite, which is the correct way
+    # this error took place despite the description of the field in the header of EnvLogger report files still explicitly indicating that tdiff was the result of obs - ref
+    # this affects report files that were produced under all of the following conditions:
+    # - device running EnvLogger Viewer is an Android
+    # - EnvLogger Viewer version prior or equal to 6.2
+    # -> if logger only records temperature, logger version greater than 2.4, or...
+    # -> if logger records additional variables, any logger version
+    x$rep <- x$rep %>%
+      dplyr::mutate(
+        is_android = dev_type == "android",
+        is_old_app = v_app <= 6.2,
+        is_just_t  = stringr::str_remove_all(v_log, "[0-9.]") == "t",
+        is_v2.4    = v_log %>%
+          stringr::str_remove_all("[^0-9.]") %>%
+          as.numeric() %>%
+          "<="(2.4),
+        fix = is_android & is_old_app & ((is_just_t & !is_v2.4) | !is_just_t),
+        tdiff = ifelse(fix, -tdiff, tdiff)
+      ) %>%
+      dplyr::select(-is_android, -is_old_app, -is_just_t, -is_v2.4, -fix)
 
 
-  # correct clock drift
-  # drift = logger - smartphone
-  # pos -> logger time was faster -> timestamps must be reduced
-  # neg -> logger time was slower -> timestamps must be increased
-  if (correct_rtc_drift) {
-    x$rep <- dplyr::mutate(x$rep,
-                           data = purrr::map2(
-                             data,
-                             tdiff,
-                             ~env_rtc_drift(.x, .y)
+    # correct clock drift
+    # drift = logger - smartphone
+    # pos -> logger time was faster -> timestamps must be reduced
+    # neg -> logger time was slower -> timestamps must be increased
+    if (correct_rtc_drift) {
+      x$rep <- dplyr::mutate(x$rep,
+                             data = purrr::map2(
+                               data,
+                               tdiff,
+                               ~env_rtc_drift(.x, .y)
                              )
-                           )
+      )
+    }
+
+    # interpolate hourly
+    if (approx_hourly) {
+      x$rep <- dplyr::mutate(
+        x$rep,
+        data = purrr::map(data,
+                          env_interpolate,
+                          stop_if_error = FALSE,
+                          dataset_has_pressure = any(x$rep$pressure))
+      )
+    }
+
+    # full days
+    if (full_days) {
+      FULL_DAYS <- x$rep$data %>%
+        purrr::map(
+          ~.x %>%
+            dplyr::group_by(t = as.Date(t)) %>%
+            dplyr::summarise(n = dplyr::n()) %>%
+            dplyr::filter(n == max(n)) %>%
+            dplyr::pull(t)
+        )
+      x$rep <- dplyr::mutate(
+        x$rep,
+        data = purrr::map2(data, FULL_DAYS,
+                           ~dplyr::filter(.x, as.Date(t) %in% .y)
+        ),
+        t0 = purrr::map_chr(data, ~dplyr::first(.x$t) %>% as.character()) %>% as.Date(),
+        t1 = purrr::map_chr(data, ~dplyr::last( .x$t) %>% as.character()) %>% as.Date()
+      )
+    }
+
+    if (bind_id) {
+      x_bind    <- dplyr::group_by(x$rep, id, pressure)
+      x_bind_t  <- dplyr::filter(x_bind, !pressure) %>% env_join_id()
+      x_bind_tp <- dplyr::filter(x_bind,  pressure) %>% env_join_id()
+
+      x$rep <- x_bind_t %>%
+        dplyr::bind_rows(x_bind_tp) %>%
+        dplyr::select(id, serials, data, overlap, t0, t1, min, max, pressure)
+
+      if (any(x$rep$overlap)) cli::cli_warn("some timestamps weren't unique - consider editing the report files to remove overlapping data (but do so with caution!)")
+    }
+
+    x$rep <- x$rep %>%
+      dplyr::mutate(xts = purrr::map(data, ~xts::xts(dplyr::select(.x, -t), .x$t, tzone = "UTC"))) %>%
+      dplyr::relocate(xts, .after = data)
   }
-
-  # interpolate hourly
-  if (approx_hourly) {
-    x$rep <- dplyr::mutate(
-      x$rep,
-      data = purrr::map(data,
-                        env_interpolate,
-                        stop_if_error = FALSE,
-                        dataset_has_pressure = any(x$rep$pressure))
-    )
-  }
-
-  if (bind_id) {
-    x_bind    <- dplyr::group_by(x$rep, id, pressure)
-    x_bind_t  <- dplyr::filter(x_bind, !pressure) %>% env_join_id()
-    x_bind_tp <- dplyr::filter(x_bind,  pressure) %>% env_join_id()
-
-    x$rep <- x_bind_t %>%
-      dplyr::bind_rows(x_bind_tp) %>%
-      dplyr::select(id, serials, data, overlap, t0, t1, min, max, pressure)
-
-    if (any(x$rep$overlap)) cli::cli_warn("some timestamps weren't unique - consider editing the report files to remove overlapping data (but do so with caution!)")
-  }
-
-  x$rep <- x$rep %>%
-    dplyr::mutate(xts = purrr::map(data, ~xts::xts(dplyr::select(.x, -t), .x$t, tzone = "UTC"))) %>%
-    dplyr::relocate(xts, .after = data)
 
   if (just_rep) x$rep else x
 }

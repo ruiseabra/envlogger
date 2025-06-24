@@ -13,6 +13,7 @@ READ_ENV(
   correct_rtc_drift = TRUE,
   use_rtc_correction_file = TRUE,
   approx_hourly = TRUE,
+  full_days = FALSE,
   log_summary = TRUE,
   just_rep = FALSE
 )
@@ -33,6 +34,8 @@ READ_ENV(
 \item{use_rtc_correction_file}{logical, defaults to \code{TRUE}; if \code{TRUE}, whenever a properly-formatted rtc corrections file is found inside of a data folder, those corretions are read and applied}
 
 \item{approx_hourly}{logical, defaults to \code{TRUE}; if \code{TRUE}, logger data is interpolated to rounded hours (i.e., is made perfectly hourly and trimmed at the first and last days, to ensure that included days are complete; if \code{bind_id = TRUE}, trimming is executed after binding)}
+
+\item{full_days}{logical, defaults to \code{FALSE}; if \code{TRUE}, logger data is only kept for days in which all data points were collected.}
 
 \item{log_summary}{logical, defaults to \code{FALSE}; if set to \code{TRUE}, a summary of the serials included in the logfile is returned instead.}
 
