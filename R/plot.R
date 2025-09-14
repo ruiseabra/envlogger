@@ -146,7 +146,6 @@ plot_env <- function(
     xlim_common  = FALSE,
     meters_corr  = 0
 ) {
-
   # check if 'stat' matches the available stats columns
   stats <- c("min", "q10", "q25", "avg", "q50", "q75", "q90", "max", "sd")
   if (!is.null(stat)) {
@@ -231,7 +230,8 @@ plot_env <- function(
 
       p + ggplot2::theme_bw()
     }
-  } else if(any(cctbon_data$humidity)) {
+    # } else if(any(cctbon_data$humidity)) {
+    } else if(FALSE) {
     # HUMIDITY
     x <- cctbon_data %>%
       dplyr::filter(humidity) %>%
