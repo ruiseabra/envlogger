@@ -6,7 +6,7 @@
 \alias{envlogger-package}
 \title{envlogger: Read, process and plot EnvLogger data}
 \description{
-Functions to handle EnvLogger data, from reading, processing and plotting. If data conforms to the CCTBON naming scheme, additional functionalities are available.
+Functions to handle EnvLogger data (\url{https://electricblue.eu/temperature-envloggers} or \url{https://electricblue.eu/relative-humidity-loggers}), from reading, processing and plotting. If data conforms to the CCTBON naming scheme, additional functionalities are available. ElectricBlue is a non-profit technology transfer startup creating research-oriented solutions for the scientific community (\url{https://electricblue.eu}).
 }
 \seealso{
 Useful links:
@@ -17,11 +17,11 @@ Useful links:
 
 }
 \author{
-\strong{Maintainer}: Rui Seabra \email{ptruimar@gmail.com} (\href{https://orcid.org/0000-0002-0240-3992}{ORCID})
+\strong{Maintainer}: Rui Seabra \email{ruisea@gmail.com} (\href{https://orcid.org/0000-0002-0240-3992}{ORCID})
 
 Authors:
 \itemize{
-  \item Fernando Lima \email{fplima@gmail.com} (\href{https://orcid.org/0000-0000-0000-0000}{ORCID})
+  \item Fernando Lima \email{fplima@gmail.com} (\href{https://orcid.org/0000-0001-9575-9834}{ORCID})
 }
 
 }
