@@ -3,18 +3,19 @@ Type: Package
 Title: Read, process and plot EnvLogger data
 Version: 0.0.0.9000
 Authors@R: c(
-    person("Rui", "Seabra", , "ptruimar@gmail.com", role = c("aut", "cre"),
+    person("Rui", "Seabra", , "ruisea@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0000-0002-0240-3992")),
     person("Fernando", "Lima", , "fplima@gmail.com", role = c("aut"),
-           comment = c(ORCID = "0000-0000-0000-0000"))
+           comment = c(ORCID = "0000-0001-9575-9834"))
            )
-Description: Functions to handle EnvLogger data, from reading, processing and plotting. 
+Description: Functions to handle EnvLogger data (<https://electricblue.eu/temperature-envloggers> or <https://electricblue.eu/relative-humidity-loggers>), from reading, processing and plotting. 
     If data conforms to the CCTBON naming scheme, additional functionalities are available.
+    ElectricBlue is a non-profit technology transfer startup creating research-oriented solutions for the scientific community (<https://electricblue.eu>).
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 Imports: 
     cli,
     dplyr,
