@@ -116,7 +116,7 @@ create_metadata_file_single <- function(
 }
 
 
-# >> ----
+# >>>> ----
 #' Create a metadata file
 #'
 #' @description
@@ -218,7 +218,17 @@ create_metadata_file_single <- function(
 #' @export
 #'
 #' @examples
-#' path <- env_example("2024-01-12/ptzzymh02a-04CB_CC00_1507_0C-20240112_083030.csv")$rep
+#' path <- env_example("2024-01-12/ptzzymh02a-04CB_CC00_1507_0C-20240112_083030.csv")$report
+#' path_meta <- paste0(substr(path, 1, nchar(path) - 4), "_meta.csv")
+#'
+#' # creating an empty template metadata file
+#' file.exists(path_meta) # metadata file doesn't exist yet
+#' void <- create_metadata_file(path)
+#' file.exists(path_meta) # metadata has been created
+#' read.csv(path_meta, skip = 4) # all fields are set to NA; the user can adjust any necessary values
+#' void <- env_example(delete_new_metadata_files = TRUE) # delete the new file
+#'
+#' # passing on values during the call to 'create_metadata_file()'
 #' new_vals = list(
 #'    id = "test",
 #'    tdiff = 10,
@@ -226,38 +236,34 @@ create_metadata_file_single <- function(
 #'    split_time_gap = TRUE,
 #'    bad_field = "THIS WILL NOT SHOW UP IN THE FILE GENERATED")
 #'
-#' # create just an empty metadata file template
-#' fn <- create_metadata_file(path, overwrite = TRUE)
-#' readLines(fn)
-#' read.csv(fn, skip = 4)$new_val # all fields still set to NA
-#'
-#' # create a metadata file with some values already filled in
-#' fn <- create_metadata_file(path, new_vals, overwrite = TRUE)
-#' read.csv(fn, skip = 4)$new_val # some of the fields now feature specific values
+#' void <- create_metadata_file(path, new_vals, update = TRUE)
+#' df_meta <- read.csv(path_meta, skip = 4)
+#' df_meta[!is.na(df_meta$new_val),] # metadata file now includes non-NA values
+#' # note that the field 'bad_field' isn't present
 # --- #
 # update = TRUE; new_vals = list(id = "test", tdiff = 10, purge_temp_min = -60, split_time_gap = TRUE, bad_field = "THIS WILL NOT SHOW UP IN THE FILE GENERATED"); paths <- env_example("inst/extdata/humid/2025-05-06/humidsc01a-0482_AC00_F27D_01-20250506_095113.csv")$rep
 # x <- create_metadata_file(paths, new_vals, update); fs::file_delete(x)
 create_metadata_file <- function(
-    paths,
+    path,
     new_vals = NULL,
     update   = FALSE
 ) {
-  # if paths is file paths, arrange as a tibble
+  # if path is file paths, arrange as a tibble
   if (is.character(paths)) {
     meta_rows <- tibble::tibble(
       step = "",
       path_data = paths,
-      path_meta = metadata_fn(paths),
+      path_meta = metadata_fn(path),
       new_vals  = list(new_vals)
     )
   }
-  # if paths points to a tibble of with the same structure as new_metadata, just use it directly
-  if (tibble::is_tibble(paths)) {
+  # if path points to a tibble of with the same structure as new_metadata, just use it directly
+  if (tibble::is_tibble(path)) {
     if (identical(
-      c(colnames(paths), "run2") %>% unique() %>% sort(),
+      c(colnames(path), "run2") %>% unique() %>% sort(),
       colnames(append_issues()) %>% sort()
     ))  {
-      meta_rows <- paths
+      meta_rows <- path
     }
   }
 
@@ -275,7 +281,7 @@ create_metadata_file <- function(
 }
 
 
-# >> ----
+# >>>> ----
 #' List EnvLogger files
 #'
 #' @description
@@ -287,11 +293,13 @@ create_metadata_file <- function(
 #'
 #' @return
 #' A tibble with nine columns, including the file paths (`path`), two columns to indicate the type of files encountered, and six columns to facilitate quick filtering of specific file categories.
+#'
 #' In more detail, the two columns that indicate the type of files encountered are `$int` (numeric) and `$chr` (character), and their values are as follows:
 #' * `1` and `report`      if an EnvLogger report or a valid report with a different format and an associated metadata file
 #' * `2` and `log`         if an EnvLogger logfile
 #' * `3` and `metadata`    if an EnvLogger metadata file
 #' * `0` and `unsupported` if none of the three
+#'
 #' The remaining columns are logical vectors for quick filtering, namely:
 #' * `rep`       - path points to a valid report of any kind?
 #' * `rep_env`   - path points to an EnvLogger report?
@@ -312,16 +320,8 @@ create_metadata_file <- function(
 #' @export
 #'
 #' @examples
-#' paths <- c(
-#'    env_example()$rep[1:3], # EnvLogger reports
-#'    env_example()$log[[1]], # logfile
-#'    env_example()$fix[[1]], # fix details file
-#'    env_example()$bad[[1]], # unsupported file
-#'    env_example(just_dir = TRUE)[[1]] # folder
-#'  )
-#' env_ls(paths) # all info
-#' env_ls(paths)$lgl # only unsupported files are FALSE
-#' env_ls(paths)$rep
+#' paths <- env_example()
+#' env_ls(paths)
 # --- #
 # paths <- env_example(); avoid_pattern = NULL; list_unsupported = TRUE
 # env_ls(paths, avoid_pattern, list_unsupported)
@@ -462,7 +462,7 @@ env_ls <- function(
 }
 
 
-# >> ----
+# >>>> ----
 #' Get paths to example files
 #'
 #' @description
@@ -523,14 +523,21 @@ env_example <- function(
     )
 
   if(delete_new_metadata_files) {
-    to_delete <- c(
-      stringr::str_subset(files$path, "issue/2024-05-25/issuemc02a-04b4_3e00_c90f_0e-20240525_101121_low_meta.csv"),
-      stringr::str_subset(files$path, "issue/2024-05-25/issuemh01a-04d3_5e00_b818_02-20240525_095727_gap_meta.csv"),
-      stringr::str_subset(files$path, "issue/2024-05-25/issuemh02a-0449_0c00_2310_05-20240525_095804_1970_meta.csv"),
-      stringr::str_subset(files$path, "ptzzy/2025-01-14/ptzzymc01a-04ce_ce00_4114_06-20250114_111522_meta.csv"),
-      stringr::str_subset(files$path, "ptzzy/2025-01-14/ptzzymc02a-14cb_8f00_e758_05-20250114_111020_meta.csv")
-    )
-    fs::file_delete(to_delete)
+    to_drop <- tibble::tibble(
+      path = files %>%
+        dplyr::filter(met) %>%
+        dplyr::pull(path)
+    ) %>%
+      dplyr::mutate(
+        fn = fs::path_file(path),
+        keep = purrr::map_lgl(
+          fn,
+          ~stringr::str_detect(example_files_to_keep, .x) %>% any()
+        )
+      ) %>%
+      dplyr::filter(!keep)
+
+    if (nrow(to_drop)) fs::file_delete(to_drop$path)
 
     # fetch file list again
     files  <- folder %>%

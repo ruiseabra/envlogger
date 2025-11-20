@@ -15,13 +15,17 @@ env_ls(paths, avoid_pattern = NULL, list_unsupported = FALSE)
 }
 \value{
 A tibble with nine columns, including the file paths (\code{path}), two columns to indicate the type of files encountered, and six columns to facilitate quick filtering of specific file categories.
+
 In more detail, the two columns that indicate the type of files encountered are \verb{$int} (numeric) and \verb{$chr} (character), and their values are as follows:
 \itemize{
 \item \code{1} and \code{report}      if an EnvLogger report or a valid report with a different format and an associated metadata file
 \item \code{2} and \code{log}         if an EnvLogger logfile
 \item \code{3} and \code{metadata}    if an EnvLogger metadata file
 \item \code{0} and \code{unsupported} if none of the three
+}
+
 The remaining columns are logical vectors for quick filtering, namely:
+\itemize{
 \item \code{rep}       - path points to a valid report of any kind?
 \item \code{rep_env}   - path points to an EnvLogger report?
 \item \code{rep_other} - path points to a report with a different format?
@@ -47,14 +51,6 @@ Otherwise unsupported files that are accompanied by an associated metadata file 
 }
 
 \examples{
-paths <- c(
-   env_example()$rep[1:3], # EnvLogger reports
-   env_example()$log[[1]], # logfile
-   env_example()$fix[[1]], # fix details file
-   env_example()$bad[[1]], # unsupported file
-   env_example(just_dir = TRUE)[[1]] # folder
- )
-env_ls(paths) # all info
-env_ls(paths)$lgl # only unsupported files are FALSE
-env_ls(paths)$rep
+paths <- env_example()
+env_ls(paths)
 }

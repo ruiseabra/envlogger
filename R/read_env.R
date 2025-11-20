@@ -9,7 +9,6 @@ read_env_work <- function(
     qual_lims,
     correct_rtc_drift,
     new_interval,
-    new_interval_margin,
     join_serials,
     join_ids ,
     overlap_max_mins,
@@ -61,7 +60,8 @@ read_env_work <- function(
     }
 
     # [5] interpolate to round time ----
-    if (!is.null(new_interval)) {
+    interpolate <- !is.null(new_interval)
+    if (interpolate) {
       dat <- run_section(
         dat           = dat,
         fun           = env_interpolate,
@@ -93,7 +93,7 @@ read_env_work <- function(
     }
 
     # [8] filter full days ----
-    if (full_days) {
+    if (full_days & interpolate) {
       dat <- run_section(
         dat           = dat,
         fun           = env_full_days,
@@ -118,7 +118,7 @@ read_env_work <- function(
 }
 
 
-# >> ----
+# >>>> ----
 #' Read EnvLogger data
 #'
 #' @description
@@ -147,7 +147,7 @@ read_env_work <- function(
 #' @param join_ids If set to `TRUE`, `join_serials` is forced to `TRUE` as well. Whether to join logger reports relating to the same ids (information specific to individual report files is discarded).
 #' @param overlap_max_mins Maximum allowed overlap length in minutes. When data from two files overlaps by less than the stipulated number of minutes, the situation is normal and handled silently. Otherwise, an issue is reported.
 #' @param keep_flags Whether to retain columns flagging data processing steps, which are normally only used internally by [read_env()] and discarded before printing the output. Only relevant for debugging errors.
-#' @param full_days Should logger data only be kept for days in which all data points were collected? (e.g., if sampling rate is 60 minutes, full days must have 24 data points).
+#' @param full_days Should logger data only be kept for days in which all data points were collected? (e.g., if sampling rate is 60 minutes, full days must have 24 data points). This option is only available if `new_interval` is provided.
 #' @param auto_generate_fixes If issues are identified for which a simple fix can be automatically determined, should the corresponding metadata files be automatically created?
 #' @param auto_implement_fixes If set to `TRUE`, `auto_generate_fixes` is forced to `TRUE` as well. After automatically generating metadata files to address issues identified, should data be re-imported again to immediately implement those fixes?
 #'
@@ -171,32 +171,36 @@ read_env_work <- function(
 #' @export
 #'
 #' @examples
+#' # raw data from a single EnvLogger data report (data as is)
+#' paths <- env_example("ptzzy")$report[[1]]
+#' read_env(paths, correct_rtc_drift = FALSE, full_days = FALSE)
+#'
+#' # folder with multiple data files from a single site
 #' paths <- env_example("ptzzy", just_dir = TRUE)
-#' read_env(paths, log_summary = TRUE)
+#' read_env(paths, new_interval = 60)
 # --- #
 # paths <- "~/Dropbox/RS/bio/datasets/temp_loggers/reports_tidy/_finalized_1.0/ptcax"
-# load_all(); paths <- env_example(); avoid_pattern = "env_archive"; log_summary = TRUE; show_progress = TRUE; show_warnings = TRUE; read_data = TRUE; apply_fixes = TRUE; qual_lims = list(min = -30, max = +70, t0 = "2000-01-01", t1 = Sys.Date()); correct_rtc_drift = TRUE; new_interval = 60; new_interval_margin = 5 * 60; join_serials = TRUE; join_ids = TRUE; overlap_max_mins = 60; keep_flags = FALSE; full_days = TRUE; auto_generate_fixes = TRUE; auto_implement_fixes = TRUE
-# x <- read_env(env_example(), avoid_pattern, log_summary, show_progress, show_warnings, read_data, apply_fixes, qual_lims, correct_rtc_drift, new_interval, new_interval_margin, join_serials, join_ids, overlap_max_mins, keep_flags, full_days, auto_generate_fixes, auto_implement_fixes)
-# fs::file_delete(x$new_metadata$path_meta)
-# fs::file_delete(c("/users/ruiseabra/dropbox/rs/bio/code2share/envlogger/inst/extdata/issue/2024-05-25/issuemc02a-04b4_3e00_c90f_0e-20240525_101121_low_meta.csv", "/users/ruiseabra/dropbox/rs/bio/code2share/envlogger/inst/extdata/issue/2024-05-25/issuemh01a-04d3_5e00_b818_02-20240525_095727_gap_meta.csv", "/users/ruiseabra/dropbox/rs/bio/code2share/envlogger/inst/extdata/issue/2024-05-25/issuemh02a-0449_0c00_2310_05-20240525_095804_1970_meta.csv", "/users/ruiseabra/dropbox/rs/bio/code2share/envlogger/inst/extdata/ptzzy/2025-01-14/ptzzymc01a-04ce_ce00_4114_06-20250114_111522_meta.csv", "/users/ruiseabra/dropbox/rs/bio/code2share/envlogger/inst/extdata/ptzzy/2025-01-14/ptzzymc02a-14cb_8f00_e758_05-20250114_111020_meta.csv"))
-# fs::file_delete(c("/users/ruiseabra/dropbox/rs/bio/code2share/envlogger/inst/extdata/issue/2024-05-25/issuemc02a-04b4_3e00_c90f_0e-20240525_101121_low_meta.csv", "/users/ruiseabra/dropbox/rs/bio/code2share/envlogger/inst/extdata/issue/2024-05-25/issuemh01a-04d3_5e00_b818_02-20240525_095727_gap_meta.csv", "/users/ruiseabra/dropbox/rs/bio/code2share/envlogger/inst/extdata/issue/2024-05-25/issuemh02a-0449_0c00_2310_05-20240525_095804_1970_meta.csv", "/users/ruiseabra/dropbox/rs/bio/code2share/envlogger/inst/extdata/ptzzy/2025-01-14/ptzzymc01a-04ce_ce00_4114_06-20250114_111522_meta.csv", "/users/ruiseabra/dropbox/rs/bio/code2share/envlogger/inst/extdata/ptzzy/2025-01-14/ptzzymc02a-14cb_8f00_e758_05-20250114_111020_meta.csv")); load_all(); x <- read_env(env_example(), avoid_pattern, log_summary, show_progress, show_warnings, read_data, apply_fixes, qual_lims, correct_rtc_drift, new_interval, new_interval_margin, join_serials, join_ids, overlap_max_mins, keep_flags, full_days, auto_generate_fixes, auto_implement_fixes)
+# paths <- env_example(); avoid_pattern = "env_archive"; log_summary = show_progress = show_warnings = read_data = apply_fixes = correct_rtc_drift = join_serials = join_ids = full_days = auto_generate_fixes = auto_implement_fixes = TRUE; qual_lims = list(min = -30, max = +70, t0 = "2000-01-01", t1 = Sys.Date()); new_interval = 60; overlap_max_mins = 60; keep_flags = FALSE
+# void <- env_example(delete_new_metadata_files = TRUE)
+# x <- read_env(env_example(), avoid_pattern, log_summary, show_progress, show_warnings, read_data, apply_fixes, qual_lims, correct_rtc_drift, new_interval, join_serials, join_ids, overlap_max_mins, keep_flags, full_days, auto_generate_fixes, auto_implement_fixes)
 read_env <- function(
     paths,
     avoid_pattern        = NULL,
-    log_summary          = FALSE,
+    log_summary          = TRUE,
     show_progress        = TRUE,
     show_warnings        = TRUE,
     read_data            = TRUE,
     apply_fixes          = TRUE,
-    qual_lims            = list(min = -30, max = +70, t0 = "2000-01-01", t1 = Sys.Date()),
-    correct_rtc_drift    = FALSE,
+    qual_lims            = list(
+      min = -30, max = +70,
+      t0 = "2000-01-01", t1 = Sys.Date()),
+    correct_rtc_drift    = TRUE,
     new_interval         = NULL,
-    new_interval_margin  = 5 * 60,
     join_serials         = TRUE,
     join_ids             = TRUE,
     overlap_max_mins     = 60 * 3,
     keep_flags           = FALSE,
-    full_days            = FALSE,
+    full_days            = TRUE,
     auto_generate_fixes  = FALSE,
     auto_implement_fixes = FALSE
 ) {
@@ -218,7 +222,6 @@ read_env <- function(
     qual_lims           = qual_lims,
     correct_rtc_drift   = correct_rtc_drift,
     new_interval        = new_interval,
-    new_interval_margin = new_interval_margin,
     join_serials        = join_serials,
     join_ids            = join_ids,
     overlap_max_mins    = overlap_max_mins,
@@ -263,7 +266,6 @@ read_env <- function(
       qual_lims           = qual_lims,
       correct_rtc_drift   = correct_rtc_drift,
       new_interval        = new_interval,
-      new_interval_margin = new_interval_margin,
       join_serials        = join_serials,
       join_ids            = join_ids,
       overlap_max_mins    = overlap_max_mins,
@@ -315,9 +317,9 @@ read_env <- function(
     # message header
     msg <- msg %>%
       bullets("i", glue::glue("issues detected (total n = {nrow(issues)})")) %>%
-      bullets("i", glue::glue("⚠️ type ", cli::col_br_magenta("?create_metadata_file()"), " to learn more about the issues listed below")) %>%
-      bullets("i", glue::glue("️💾 access paths to files with unresolved issues using ", cli::col_br_magenta("$files_with_issues"))) %>%
-      bullets("i", glue::glue("️💾 access paths to newly created metadata files using ", cli::col_br_magenta("$files_created"))) %>%
+      bullets("i", glue::glue("type ", cli::col_br_magenta("?create_metadata_file()"), " to learn more about the issues listed below")) %>%
+      bullets("i", glue::glue("access paths to files with unresolved issues using ", cli::col_br_magenta("$files_with_issues"))) %>%
+      bullets("i", glue::glue("access paths to newly created metadata files using ", cli::col_br_magenta("$files_created"))) %>%
       bullets(" ", "")
 
     # unresolved issues
@@ -327,16 +329,16 @@ read_env <- function(
 
       # additional messages depending on presence of certain issue types
       if (any(bad$step == "unsupported")) {
-        msg <- bullets(msg, ">", "⛔️ unsupported/no data files have not be imported")
+        msg <- bullets(msg, ">", "unsupported/no data files have not be imported")
       }
       if (any(bad$step == "quality")) {
-        msg <- bullets(msg, ">", "🚧 files with quality issues have not be imported (issues must be resolved first)")
+        msg <- bullets(msg, ">", "files with quality issues have not be imported (issues must be resolved first)")
       }
       if (any(bad$issue == "full overlap")) {
-        msg <- bullets(msg, ">", "🙈 files that fully overlap other files have been ignored")
+        msg <- bullets(msg, ">", "files that fully overlap other files have been ignored")
       }
       if (any(bad$issue == "partial overlap")) {
-        msg <- bullets(msg, ">", glue::glue("🔍 partial overlaps were resolved automatically, ", cli::style_underline("but consider doublechecking")))
+        msg <- bullets(msg, ">", glue::glue("partial overlaps were resolved automatically, ", cli::style_underline("but consider doublechecking")))
       }
 
       # list files
@@ -381,6 +383,10 @@ read_env <- function(
   dat$files_with_issues <- dplyr::filter(dat$issues, !fixed)$path_data
   dat$files_created     <- dplyr::filter(dat$issues, fixed)$path_meta
 
+  if (!nrow(dat$issues))              dat$issues <- NULL
+  if (!length(dat$files_with_issues)) dat$files_with_issues <- NULL
+  if (!length(dat$files_created))     dat$files_created <- NULL
+
   nms <- intersect(
     names(dat),
     c("report", "log", "metadata", "issues", "files_with_issues", "files_created")
@@ -390,8 +396,6 @@ read_env <- function(
 
 
 ### TO DOs ----
-## update examples
-
 ## work on parse_id(dat, cctbon = FALSE, fields = (list(list(pos = 1:5, nm = "site", vals = "all"), list(pos = 6, nm = "lvl", vals = c("s", "t", "m", "l", "p")))))
 ## parse_id_field_chr, parse_id_field_dbl, parse_id_field_lgl, parse_id_field_fct
 ## work on add_solar(daylight y/n, sun height, nearest to sunrise, nearest to sunset, time after sunrise, time before sunset, time to solar max)
@@ -399,11 +403,11 @@ read_env <- function(
 ## work on summarise_id, summarize_id
 ## work on plot_env
 
-# – parse_id_dbl(id, colname, start, end)
-# – parse_id_fct(id, colname, start, end, levels)
-# – parse_id_cctbon(id)
-# – colnames append id_
-# – remove data from first day when joining by id
-# – tides
+# parse_id_dbl(id, colname, start, end)
+# parse_id_fct(id, colname, start, end, levels)
+# parse_id_cctbon(id)
+# colnames append id_
+# remove data from first day when joining by id
+# tides
 
-# marés viagens
+# mares viagens

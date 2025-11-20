@@ -7,20 +7,19 @@
 read_env(
   paths,
   avoid_pattern = NULL,
-  log_summary = FALSE,
+  log_summary = TRUE,
   show_progress = TRUE,
   show_warnings = TRUE,
   read_data = TRUE,
   apply_fixes = TRUE,
   qual_lims = list(min = -30, max = +70, t0 = "2000-01-01", t1 = Sys.Date()),
-  correct_rtc_drift = FALSE,
+  correct_rtc_drift = TRUE,
   new_interval = NULL,
-  new_interval_margin = 5 * 60,
   join_serials = TRUE,
   join_ids = TRUE,
   overlap_max_mins = 60 * 3,
   keep_flags = FALSE,
-  full_days = FALSE,
+  full_days = TRUE,
   auto_generate_fixes = FALSE,
   auto_implement_fixes = FALSE
 )
@@ -54,14 +53,14 @@ read_env(
 
 \item{keep_flags}{Whether to retain columns flagging data processing steps, which are normally only used internally by \code{\link[=read_env]{read_env()}} and discarded before printing the output. Only relevant for debugging errors.}
 
-\item{full_days}{Should logger data only be kept for days in which all data points were collected? (e.g., if sampling rate is 60 minutes, full days must have 24 data points).}
+\item{full_days}{Should logger data only be kept for days in which all data points were collected? (e.g., if sampling rate is 60 minutes, full days must have 24 data points). This option is only available if \code{new_interval} is provided.}
 
 \item{auto_generate_fixes}{If issues are identified for which a simple fix can be automatically determined, should the corresponding metadata files be automatically created?}
 
 \item{auto_implement_fixes}{If set to \code{TRUE}, \code{auto_generate_fixes} is forced to \code{TRUE} as well. After automatically generating metadata files to address issues identified, should data be re-imported again to immediately implement those fixes?}
 }
 \value{
-A list with EnvLogger information (and data) from all reports and logfiles found in the target path, divided into \verb{$rep}and \verb{$log} or, if \code{just_rep = TRUE}, a the tibble with information for all reports found.
+A list with EnvLogger information (and data) from all reports, logfiles and metadata found in the target paths, divided into \verb{$log}, \verb{$metadata}, and \verb{$report}. Additionally, if issues are found, the returned list may also include \verb{$issues}, \verb{$files_with_issues}, and \verb{$files_created}.
 }
 \description{
 Reads and organizes EnvLogger data and associated information. The following steps are executed sequentially:
@@ -94,8 +93,13 @@ Perform linear interpolation to tidy EnvLogger data so that there's one reading 
 }
 
 \examples{
+# raw data from a single EnvLogger data report (data as is)
+paths <- env_example("ptzzy")$report[[1]]
+read_env(paths, correct_rtc_drift = FALSE, full_days = FALSE)
+
+# folder with multiple data files from a single site
 paths <- env_example("ptzzy", just_dir = TRUE)
-read_env(paths, log_summary = TRUE)
+read_env(paths, new_interval = 60)
 }
 \seealso{
 \code{\link[=plot_env]{plot_env()}}

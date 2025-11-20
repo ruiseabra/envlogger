@@ -171,8 +171,11 @@ env_fix <- function(
 
   # messages
   if (any(rep$f_fixs_applied)) {
-    dat$msg_bullets$fix <- bullets(c(), "v", glue::glue(cli::col_green("fix details found and applied (n = {sum(rep$f_fixs_applied) - splits})")), col = "black")
+    msg <- bullets(c(), "v", glue::glue("fix details found and applied (n = {sum(rep$f_fixs_applied) - splits})"), col = "green")
+  } else {
+    msg <- bullets(c(), "v", "no fix details found", col = "green")
   }
+  dat$msg_bullets$fix <- msg
 
   # return
   rep$f_fixs_checked = TRUE
@@ -279,8 +282,10 @@ env_check_qual <- function(
     } else {
       msg <- bullets(c(), "i", glue::glue("quality checks failed by some reports (n = {sum(!rep$f_qual_good)}/{nrow(rep)})"), col = "yellow")
     }
-    dat$msg_bullets$qual <- msg
+  } else {
+    msg <- bullets(c(), "x", "quality checks failed by all reports!", col = "red")
   }
+  dat$msg_bullets$qual <- msg
 
   # return
   dat$report <- rep %>%
@@ -334,7 +339,7 @@ env_rtc_drift <- function(
     )
 
   # messages
-  dat$msg_bullets$drift <- bullets(c(), "v", cli::col_green("RTC clock drifts corrected"), col = "black")
+  dat$msg_bullets$drift <- bullets(c(), "v", "RTC clock drifts corrected", col = "green")
 
   # return
   dat
@@ -615,7 +620,7 @@ env_join_by_serial <- function(
   if (n_before_join > nrow(rep)) {
     msg <- bullets(c(), "v", glue::glue("reports joined by serial (n = {n_before_join} -> {nrow(rep)})"), col = "green")
   } else {
-    msg <- bullets(c(), "v", glue::glue("no reports to join by serial"), col = "green")
+    msg <- bullets(c(), "v", "no reports to join by serial", col = "green")
   }
   dat$msg_bullets$join_serial <- msg
 
@@ -760,7 +765,7 @@ env_join_by_id <- function(
   if (n_before_join > nrow(rep)) {
     msg <- bullets(c(), "v", glue::glue("reports joined by id ... (n = {n_before_join} -> {nrow(rep)})"), col = "green")
   } else {
-    msg <- bullets(c(), "v", glue::glue("no reports to join by id"), col = "green")
+    msg <- bullets(c(), "v", "no reports to join by id", col = "green")
   }
   dat$msg_bullets$join_id <- msg
 
@@ -835,11 +840,12 @@ env_generate_fixes <- function(
   # messages
   if (!n_files) {
     # if nothing was done, let user know that there was nothing to do
-    dat$msg_bullets$meta <- bullets(c(), "v", "no metadata files to generate", col = "green")
+    msg <- bullets(c(), "v", "no metadata files to generate", col = "green")
   } else {
     # otherwise, report the number of files generated
-    dat$msg_bullets$meta <- bullets(c(), "v", glue::glue("new metadata files generated automatically (n = {n_files})"), col = "green")
+    msg <- bullets(c(), "v", glue::glue("new metadata files generated automatically (n = {n_files})"), col = "green")
   }
+  dat$msg_bullets$meta <- msg
 
   # return
   dat$files_created <- new_files
