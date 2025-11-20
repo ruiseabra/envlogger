@@ -8,8 +8,9 @@ device, Armor Mini 20T Pro
 device name, rui_mini_20tpro
 downloading mode, auto
 ------------------------------,--------------------
-serial number, 04CB 8F00 E758 05
+serial number, 14CB 8F00 E758 05
 custom name, ptzzymc02a
+file name, ptzzymc02a-14CB_8F00_E758_05-20250114_111020.csv
 temperature, degrees Celsius
 time zone, UTC+0000
 sampling resolution, 0.1
@@ -20,6 +21,14 @@ long, NA
 accuracy (m), 5.0
 ------------------------------,--------------------
 time,temp
+2024-01-12 00:00:07,13.9
+2024-01-12 01:00:07,14.3
+2024-01-12 02:00:07,14.4
+2024-01-12 03:00:07,14.4
+2024-01-12 04:00:07,14.4
+2024-01-12 05:00:07,14.5
+2024-01-12 06:00:07,14.5
+2024-01-12 07:00:07,14.2
 2024-01-12 08:00:07,11.2
 2024-01-12 09:00:07,10.5
 2024-01-12 10:00:07,10.1

@@ -16,8 +16,8 @@ time zone, UTC+0000
 sampling resolution, 0.1
 samples, 5593
 time diff [logger-smartphone](sec), 3
-lat, 41.328248
-long, -8.672492
+lat, NA
+long, NA
 accuracy (m), 2.0
 ------------------------------,--------------------
 time,temp,humidity

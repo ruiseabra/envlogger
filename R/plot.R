@@ -17,7 +17,7 @@
 #' @return
 #' A ggplot
 #'
-#' @seealso [read_env_all()]
+#' @seealso [READ_ENV()]
 #'
 #' @export
 #'

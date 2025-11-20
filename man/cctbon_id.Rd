@@ -68,5 +68,5 @@ x <- READ_ENV(paths)
 cctbon_id(x)
 }
 \seealso{
-\code{\link[=read_env_all]{read_env_all()}}, \code{\link[=READ_ENV]{READ_ENV()}}
+\code{\link[=READ_ENV]{READ_ENV()}}
 }

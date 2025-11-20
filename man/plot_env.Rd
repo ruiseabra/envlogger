@@ -171,5 +171,5 @@ plot_env(paths3,
          ggplot2::scale_fill_manual(values = c("black", "green"))
 }
 \seealso{
-\code{\link[=read_env_all]{read_env_all()}}
+\code{\link[=READ_ENV]{READ_ENV()}}
 }

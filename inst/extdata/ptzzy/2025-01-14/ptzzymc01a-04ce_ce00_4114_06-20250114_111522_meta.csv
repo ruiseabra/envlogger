@@ -1,0 +1,26 @@
+metadata,-------,----,ptzzymc01a-04ce_ce00_4114_06-20250114_111522.csv
+pkg vsn: 0.0.0.9000,-------,----,only edit 'new_val' --> leave header unchanged
+created: 2025-11-19,-------,----,unused lines can be left as NA or deleted
+---------------------,-------,----,-----------------------------------------
+field,new_val,type,info
+id,NA,chr,max 10 chr
+serial,NA,chr,device serial number (typically hexadecimal)
+type,NA,chr,logging device type
+v_log,NA,dbl,logging device version
+v_app,NA,dbl,download software version
+tdiff,NA,int,logger RTC drift in seconds (obs - ref)
+dev,NA,chr,brand and model of device used for download
+dev_nm,NA,chr,id of device used for download
+dev_os,NA,chr,OS of device used for download
+skip,NA,int,skip x lines to get to the first line of data
+time_format,NA,chr,if not standard provide time format (e.g. %m-%d%-%Y %H:%M)
+sep_dec_comma,NA,lgl,is the decimal separator a comma?
+offset_time,NA,int,shift timestamps by x seconds (pos or neg)
+offset_diff,NA,int,shift tdiff by x seconds (pos or neg)
+purge_temp_min,NA,dbl,discard data below x temperature (pos or neg)
+purge_temp_max,NA,dbl,discard data above x temperature (pos or neg)
+purge_time_bef,2024-01-12 08:00:00,dttm,discard data before x; format = 1970-01-01 00:00:00
+purge_time_aft,NA,dttm,discard data after x; format = 1970-01-01 00:00:00
+purge_na_time,NA,lgl,discard data when timestamps are NA?
+purge_na_data,NA,lgl,discard data when values are NA?
+split_time_gap,NA,lgl,split data when gaps found?

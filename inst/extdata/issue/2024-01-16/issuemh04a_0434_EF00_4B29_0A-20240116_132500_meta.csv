@@ -1,0 +1,7 @@
+metadata,-------,----,issuemh04a_0434_EF00_4B29_0A-20240116_132500.csv
+pkg vsn: 0.0.0.9000,-------,----,only edit 'new_val' --> leave header unchanged
+created: 2025-11-15,-------,----,unused lines can be left as NA or deleted
+---------------------,-------,----,-----------------------------------------
+field,new_val,type,info
+offset_time,3600,int,shift timestamps by x seconds (pos or neg)
+offset_diff,3600,int,shift tdiff by x seconds (pos or neg)

@@ -9,14 +9,15 @@ device name, CoastalWarming_09
 downloading mode, manual
 ------------------------------,--------------------
 serial number, 0434 EF00 4B29 0A
-custom name, corrr2
+custom name, issuemh04a
+file name, issuemh04a_0434_EF00_4B29_0A-20240116_132500.csv
 temperature, degrees Celsius
 time zone, UTC+0000
 sampling resolution, 0.1
 samples, 1441
 time diff [logger-smartphone](sec), -3590
-lat, 41.697197
-long, -8.851755
+lat, NA
+long, NA
 accuracy (m), 2.2
 ------------------------------,--------------------
 time,temp
