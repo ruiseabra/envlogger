@@ -175,4 +175,5 @@ void <- create_metadata_file(path, new_vals, update = TRUE)
 df_meta <- read.csv(path_meta, skip = 4)
 df_meta[!is.na(df_meta$new_val),] # metadata file now includes non-NA values
 # note that the field 'bad_field' isn't present
+void <- env_example(delete_new_metadata_files = TRUE) # delete the new file
 }
