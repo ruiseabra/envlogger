@@ -28,6 +28,7 @@ Imports:
     pillar,
     purrr,
     readr,
+    slider,
     stats,
     stringr,
     tibble,

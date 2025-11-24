@@ -3,7 +3,3 @@
 ^dev_code\.R$
 ^LICENSE\.md$
 ^README\.Rmd$
-^cctbon\.R$
-^cctbon_id\.Rd$
-^plot\.R$
-^plot_env\.Rd$

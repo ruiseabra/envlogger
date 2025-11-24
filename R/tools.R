@@ -240,6 +240,7 @@ create_metadata_file_single <- function(
 #' df_meta <- read.csv(path_meta, skip = 4)
 #' df_meta[!is.na(df_meta$new_val),] # metadata file now includes non-NA values
 #' # note that the field 'bad_field' isn't present
+#' void <- env_example(delete_new_metadata_files = TRUE) # delete the new file
 # --- #
 # update = TRUE; new_vals = list(id = "test", tdiff = 10, purge_temp_min = -60, split_time_gap = TRUE, bad_field = "THIS WILL NOT SHOW UP IN THE FILE GENERATED"); paths <- env_example("inst/extdata/humid/2025-05-06/humidsc01a-0482_AC00_F27D_01-20250506_095113.csv")$rep
 # x <- create_metadata_file(paths, new_vals, update); fs::file_delete(x)
@@ -249,10 +250,10 @@ create_metadata_file <- function(
     update   = FALSE
 ) {
   # if path is file paths, arrange as a tibble
-  if (is.character(paths)) {
+  if (is.character(path)) {
     meta_rows <- tibble::tibble(
       step = "",
-      path_data = paths,
+      path_data = path,
       path_meta = metadata_fn(path),
       new_vals  = list(new_vals)
     )

@@ -204,6 +204,10 @@ read_env <- function(
     auto_generate_fixes  = FALSE,
     auto_implement_fixes = FALSE
 ) {
+  old_TZ <- Sys.getenv("TZ")
+  Sys.setenv(TZ = "UTC")
+  on.exit(Sys.setenv(TZ = old_TZ), add = TRUE)
+
   ok <- is.list(qual_lims)
   if (ok) ok <- all(names(qual_lims) %in% c("min", "max", "t0", "t1"))
   if (!ok) cli::cli_abort(c("x" = "the arg 'qual_lims' must be a list that includes the following elements: min, max, t0, t1 (names are strict)"))
@@ -396,10 +400,6 @@ read_env <- function(
 
 
 ### TO DOs ----
-## work on parse_id(dat, cctbon = FALSE, fields = (list(list(pos = 1:5, nm = "site", vals = "all"), list(pos = 6, nm = "lvl", vals = c("s", "t", "m", "l", "p")))))
-## parse_id_field_chr, parse_id_field_dbl, parse_id_field_lgl, parse_id_field_fct
-## work on add_solar(daylight y/n, sun height, nearest to sunrise, nearest to sunset, time after sunrise, time before sunset, time to solar max)
-## work on add_tide, get_fes_tides
 ## work on summarise_id, summarize_id
 ## work on plot_env
 

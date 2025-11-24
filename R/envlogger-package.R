@@ -38,7 +38,7 @@ template_metadata <- tibble::tribble(
   tibble::add_column(new_val = NA) %>%
   dplyr::relocate(new_val, .after = field)
 
-metadata_cols_env <- template_metadata %>%
+metadata_cols_env   <- template_metadata %>%
   dplyr::filter(rep_env) %>%
   dplyr::pull(field)
 
@@ -46,7 +46,7 @@ metadata_cols_other <- template_metadata %>%
   dplyr::filter(rep_other) %>%
   dplyr::pull(field)
 
-metadata_cols_fix <- template_metadata %>%
+metadata_cols_fix   <- template_metadata %>%
   dplyr::filter(!rep_env, !rep_other) %>%
   dplyr::pull(field)
 
@@ -60,6 +60,32 @@ col_types <- tibble::tribble(
 )
 
 envlogger_types <- c("t", "th", "tp", "tw", "tl", "thl")
+
+env_cols <- c("id", "serial", "type", "v_log", "press", "hum", "data", "xts", "nrow", "min", "max", "t0", "t1")
+
+parse_id_standards <- list(
+  cctbon = list(
+    div = "1111123445",
+    fields = list(
+      site = "fct",
+      lvl  = c("l", "m", "t", "s"),
+      exp  = c("c", "h"),
+      rep1 = "num",
+      rep2 = "chr"
+    )
+  )
+)
+
+summarise_funs <- list(
+  min = function(x) min(x, na.rm = TRUE),
+  q10 = function(x) stats::quantile(x, 0.10, na.rm = TRUE),
+  q25 = function(x) stats::quantile(x, 0.25, na.rm = TRUE),
+  avg = function(x) mean(x, na.rm = TRUE),
+  q50 = function(x) stats::quantile(x, 0.50, na.rm = TRUE),
+  q75 = function(x) stats::quantile(x, 0.75, na.rm = TRUE),
+  q90 = function(x) stats::quantile(x, 0.90, na.rm = TRUE),
+  max = function(x) max(x, na.rm = TRUE)
+)
 
 # list of original files for use in env_example
 # env_example(delete_new_metadata_files = TRUE) %>% purrr::list_c() %>% fs::path_file() %>% dput()
@@ -135,6 +161,8 @@ id = serial = t0 = t1 = data = int = int_lead = . = int_lag = overlap_mins = ove
 . = l = is_env = int = has_met = is_log = is_met = lgl = path = NULL
 ## env_rtc_drift
 type = dev_os = v_app = v_log = is_android = is_old_app = is_just_t = is_v2.4 = is_other = is_fix = tdiff = data = NULL
+## parse_id
+i = i1 = i2 = bad = NULL
 ## plot_env
 mic = pressure = id = temp = press = val = type = sh = avg = t0 = t1 = .data = facet_c = facet_r = NULL
 ## read_env
@@ -158,6 +186,10 @@ tdiff = data = id = serial = t0 = path = NULL
 #    cctbon_summarise: no visible binding for global variable ‘mic’
 #    cctbon_summarise: no visible binding for global variable ‘id’
 #    cctbon_summarise: no visible binding for global variable ‘temp’
+#    parse_id: no visible binding for global variable ‘i1’
+#    parse_id: no visible binding for global variable ‘i2’
+#    parse_id: no visible binding for global variable ‘i’
+#    parse_id: no visible binding for global variable ‘bad’
 #    create_metadata_file: no visible binding for global variable ‘paths’
 #    create_metadata_file_single: no visible binding for global variable ‘rep_env’
 #    create_metadata_file_single: no visible binding for global variable ‘rep_other’

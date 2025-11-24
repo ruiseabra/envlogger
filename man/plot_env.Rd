@@ -30,12 +30,6 @@ plot_env(
 
 \item{dy}{logical, defaults to \code{FALSE}; whether to print an interactive dygraph instead (some of the other parameters become irrelevant)}
 
-\item{by_micro}{logical, defaults to \code{FALSE}; whether data should be grouped at the microhabitat level.}
-
-\item{by_shore}{logical, defaults to \code{FALSE}; whether data should be grouped at the shore level (ignored if \code{by_micro = TRUE}).}
-
-\item{by_day}{logical, defaults to \code{TRUE}; whether data should be grouped daily (applied before \code{roll_days}).}
-
 \item{smooth}{logical, defaults to \code{FALSE}; whether to plot a loess smoothed curve instead.}
 
 \item{stat}{character string, defaults to \code{avg}; the stat to be plotted if any of \code{by_micro}, \code{by_shore} or \code{by_day} is set to \code{TRUE}; one of \code{min}, \code{q10}, \code{q25}, \code{avg}, \code{q50}, \code{q75}, \code{q90}, \code{max}, or \code{sd}.}
@@ -49,8 +43,6 @@ plot_env(
 \item{facet_row}{character string, defaults to \code{NULL}; if set, the chosen variable is used to establish facetting rows; values allowed are \code{sh}, \code{exp}, \code{lvl} or \code{mic} (same meaning as in \code{col_by}).}
 
 \item{facet_col}{same as \code{facet_row}, but to set facetting columns.}
-
-\item{roll_days}{integer, defaults to \code{0}; number of days over which to group summarised data (rolling mean); if \code{0}, data is returned without temporal summarisation.}
 
 \item{xlim_common}{logical, defaults to \code{FALSE}; whether to trim edges to only include data during common time ranges across all shores.}
 
