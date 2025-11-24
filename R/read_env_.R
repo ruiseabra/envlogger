@@ -333,7 +333,9 @@ read_env_log <- function(
 
   # merge all logs
   ## note that bind_rows ensures that columns missing from one logfile and not the other are retained (values are set to NA)
-  logs <- dplyr::bind_rows(logs)
+  logs <- logs %>%
+    dplyr::bind_rows() %>%
+    dplyr::distinct()
 
   # if any colnames are still missing, they must be generated and populated with NA
   missing_cols <- COLS[!COLS %in% colnames(logs)]
