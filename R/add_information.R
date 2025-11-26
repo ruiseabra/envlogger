@@ -330,9 +330,6 @@ summarise_env <- function(
   if (is.null(names(fun_list))) names(fun_list) <- stringr::str_c("fun", 1:length(fun_list))
   rep <- if (is.list(env) & !tibble::is_tibble(env)) env$report else env
 
-  # prepare tibble
-  rep$xts <- NULL
-
   # if grouping by 'site', make sure colname(s) exists
   if (by_site) {
     if (!all(site %in% colnames(rep))) cli::cli_abort(c("x" = "failed to group by 'site'", "i" = "the value(s) provided couldn't be found in any colnames"))

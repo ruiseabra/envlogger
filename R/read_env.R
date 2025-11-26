@@ -183,9 +183,9 @@ read_env_work <- function(
 #' read_env(paths, new_interval = 60)
 # --- #
 # paths <- "~/Dropbox/RS/bio/datasets/temp_loggers/reports_tidy/_finalized_1.0/ptcax"
-# paths <- env_example(); avoid_pattern = "env_archive"; log_summary = show_progress = show_warnings = read_data = apply_fixes = correct_rtc_drift = join_serials = join_ids = full_days = auto_generate_fixes = auto_implement_fixes = TRUE; qual_lims = list(min = -30, max = +70, t0 = "2000-01-01", t1 = Sys.Date()); new_interval = 60; overlap_max_mins = 60; keep_flags = FALSE
+# paths <- env_example(); avoid_pattern = "env_archive"; log_summary = show_progress = show_warnings = read_data = apply_fixes = correct_rtc_drift = join_serials = join_ids = full_days = auto_generate_fixes = auto_implement_fixes = TRUE; qual_lims = list(min = -30, max = +70, t0 = "2000-01-01", t1 = Sys.Date()); new_interval = 60; overlap_max_mins = 60; keep_flags = FALSE; join_ids_trim_d1
 # void <- env_example(delete_new_metadata_files = TRUE)
-# x <- read_env(env_example(), avoid_pattern, log_summary, show_progress, show_warnings, read_data, apply_fixes, qual_lims, correct_rtc_drift, new_interval, join_serials, join_ids, overlap_max_mins, keep_flags, full_days, auto_generate_fixes, auto_implement_fixes)
+# x <- read_env(env_example(), avoid_pattern, log_summary, show_progress, show_warnings, read_data, apply_fixes, qual_lims, correct_rtc_drift, new_interval, join_serials, join_ids, join_ids_trim_d1, overlap_max_mins, keep_flags, full_days, auto_generate_fixes, auto_implement_fixes)
 read_env <- function(
     paths,
     avoid_pattern        = NULL,
@@ -293,6 +293,44 @@ read_env <- function(
     }
   }
 
+  # adjust segment values
+  ## different combinations of join_serials and join_ids may result in the collumn "sgmnt" be missing in data, or not have the expected number of chars
+  ## so to make it consistent, here we identify situations when the ideal conditions are not met and implement the necessary fixes to the values of sgmnt
+  if ("report" %in% names(dat)) {
+    data <- dat$report$data
+    has_sgmnt <- data %>%
+      purrr::map_lgl(~"sgmnt" %in% colnames(.x)) %>%
+      any()
+
+    if (has_sgmnt) {
+      ## if sgmnt is present, make sure it is has 2 chars
+      if (nchar(data[[1]]$sgmnt[[1]]) == 1) {
+        data <- data %>%
+          purrr::map(
+            ~dplyr::mutate(
+              .x,
+              # if nchar == 1, add "1" to sgmnt
+              # because only way for nchar be 1 is for join_ids be set to FALSE, in which case it is the number part of sgmnt that will be missing, and all entries should receive the same value "1"
+              sgmnt = stringr::str_c("1", sgmnt)
+            )
+          )
+      }
+    } else {
+      ## if sgmnt not present (!join_serials, !join_ids), set it to 1a
+      data <- data %>%
+        purrr::map(
+          ~dplyr::mutate(
+            .x,
+            # add sgmnt with the same base value for all entries "1a"
+            sgmnt = "1a"
+          )
+        )
+    }
+
+    dat$report$data <- data
+  }
+
+
   ## [!] warnings ----
   msg <- c()
 
@@ -376,16 +414,17 @@ read_env <- function(
     ## discard flags
     if (!keep_flags) dat$report <- dplyr::select(dat$report, !dplyr::starts_with("f_"))
     ## add xts
-    dat$report <- dat$report %>%
-      dplyr::mutate(
-        xts = purrr::map(
-          data,
-          ~xts::xts(
-            dplyr::select(.x, -t),
-            .x$t,
-            tzone = "UTC")
-        )) %>%
-      dplyr::relocate(xts, .after = data)
+    # usethis::use_package("xts")
+    # dat$report <- dat$report %>%
+    #   dplyr::mutate(
+    #     xts = purrr::map(
+    #       data,
+    #       ~xts::xts(
+    #         dplyr::select(.x, -t),
+    #         .x$t,
+    #         tzone = "UTC")
+    #     )) %>%
+    #   dplyr::relocate(xts, .after = data)
   }
 
   ## [.] return ----
