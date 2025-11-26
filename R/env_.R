@@ -732,7 +732,7 @@ env_join_by_id <- function(
       dplyr::bind_rows(others) %>%
       dplyr::arrange(as.numeric(i)) %>%
       dplyr::select(-i, -group)
-
+  }
 
   # join by id
   n_before_join <- nrow(rep)
