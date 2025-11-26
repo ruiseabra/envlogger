@@ -1,3 +1,15 @@
+
+### TO DOs ----
+# work on plot_env
+# add links across functions
+# push
+
+# remove data from first day when joining by id
+# tides
+
+# mares viagens
+
+
 #' @keywords internal
 "_PACKAGE"
 

@@ -10,7 +10,8 @@ read_env_work <- function(
     correct_rtc_drift,
     new_interval,
     join_serials,
-    join_ids ,
+    join_ids,
+    join_ids_trim_d1,
     overlap_max_mins,
     full_days,
     auto_generate_fixes
@@ -85,10 +86,11 @@ read_env_work <- function(
     # [7] join by id ----
     if (join_ids) {
       dat <- run_section(
-        dat           = dat,
-        fun           = env_join_by_id,
-        section_nm    = "joining by ids",
-        show_progress = show_progress
+        dat              = dat,
+        fun              = env_join_by_id,
+        section_nm       = "joining by ids",
+        show_progress    = show_progress,
+        join_ids_trim_d1 = join_ids_trim_d1
       )
     }
 
@@ -145,6 +147,7 @@ read_env_work <- function(
 #' @param new_interval Desired sampling rate in minutes. If left `NULL` no interpolation takes place and data remains raw. If provided, data is interpolated to every `new_interval`-minutes. This is important for analyses that require data from all loggers to be at the same time points (every hour, every half-hour). Interpolation is aware of eventual gaps in the data and does not generate artificial data where none exists.
 #' @param join_serials Whether to join logger reports relating to the same serial numbers.
 #' @param join_ids If set to `TRUE`, `join_serials` is forced to `TRUE` as well. Whether to join logger reports relating to the same ids (information specific to individual report files is discarded).
+#' @param join_ids_trim_d1 When joining by ids, should the day when serials change be discarded?
 #' @param overlap_max_mins Maximum allowed overlap length in minutes. When data from two files overlaps by less than the stipulated number of minutes, the situation is normal and handled silently. Otherwise, an issue is reported.
 #' @param keep_flags Whether to retain columns flagging data processing steps, which are normally only used internally by [read_env()] and discarded before printing the output. Only relevant for debugging errors.
 #' @param full_days Should logger data only be kept for days in which all data points were collected? (e.g., if sampling rate is 60 minutes, full days must have 24 data points). This option is only available if `new_interval` is provided.
@@ -198,6 +201,7 @@ read_env <- function(
     new_interval         = NULL,
     join_serials         = TRUE,
     join_ids             = TRUE,
+    join_ids_trim_d1     = TRUE,
     overlap_max_mins     = 60 * 3,
     keep_flags           = FALSE,
     full_days            = TRUE,
@@ -228,6 +232,7 @@ read_env <- function(
     new_interval        = new_interval,
     join_serials        = join_serials,
     join_ids            = join_ids,
+    join_ids_trim_d1    = join_ids_trim_d1,
     overlap_max_mins    = overlap_max_mins,
     full_days           = full_days,
     auto_generate_fixes = auto_generate_fixes
@@ -272,6 +277,7 @@ read_env <- function(
       new_interval        = new_interval,
       join_serials        = join_serials,
       join_ids            = join_ids,
+      join_ids_trim_d1    = join_ids_trim_d1,
       overlap_max_mins    = overlap_max_mins,
       full_days           = full_days,
       auto_generate_fixes = auto_generate_fixes
@@ -397,17 +403,3 @@ read_env <- function(
   )
   dat[nms]
 }
-
-
-### TO DOs ----
-## work on summarise_id, summarize_id
-## work on plot_env
-
-# parse_id_dbl(id, colname, start, end)
-# parse_id_fct(id, colname, start, end, levels)
-# parse_id_cctbon(id)
-# colnames append id_
-# remove data from first day when joining by id
-# tides
-
-# mares viagens

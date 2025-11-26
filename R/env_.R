@@ -631,18 +631,25 @@ env_join_by_serial <- function(
 
 
 # >> ----
-# paths = env_example(); dat <- read_env(paths = paths, show_progress = FALSE, show_warnings = FALSE, correct_rtc_drift = TRUE, new_interval = 60, join_serials = TRUE, join_ids = FALSE, keep_flags = TRUE)
-# env_join_by_id(dat)
+# paths = env_example(); dat <- read_env(paths = paths, show_progress = FALSE, show_warnings = FALSE, correct_rtc_drift = TRUE, new_interval = 60, join_serials = TRUE, join_ids = FALSE, keep_flags = TRUE); join_ids_trim_d1 = TRUE
+# env_join_by_id(dat, join_ids_trim_d1)
 env_join_by_id <- function(
-    dat
+    dat,
+    join_ids_trim_d1
 ) {
-  new_metadata <- NULL
+  # if join_ids_trim_d1 is TRUE, we must first find the serials that will be joined and determine which will need to have their day of joining trimmed
 
+  ## continue here; commit after completing
+  ## afterwards, must make sure that when custom name is absent, serial is set as id
+  ## then, make sure summarise_env keeps id (id = site, id = site_group)
+
+  # first trim each serial_i+1 to the end of serial_i
   rep <- dat$report %>%
     dplyr::arrange(id, serial, t0, t1) %>%
 
     # determine available intervals
     dplyr::mutate(
+      # computations done per id
       .by = id,
 
       # data$t interval for the current row
@@ -692,13 +699,51 @@ env_join_by_id <- function(
   # save overlap lengths for review
   trimmed <- rep
 
+  # second, if join_ids_trim_d1 = TRUE, trim the first day of serial_i+1
+  if (join_ids_trim_d1) {
+    rep <- rep %>%
+      dplyr::arrange(id, serial, t0, t1) %>%
+
+      # add indexes to facilitate rejoining tibbles later on
+      tibble::rownames_to_column("i") %>%
+
+      # determine available intervals
+      dplyr::mutate(
+        # determine which entries are beyond serial #1
+        .by = id,
+        group = 1:dplyr::n(),
+      )
+
+    firsts <- dplyr::filter(rep, group == 1)
+    others <- dplyr::filter(rep, group != 1)
+
+    if (nrow(others)) {
+      others <- others %>%
+        dplyr::mutate(
+          # trim day 1 of data
+          data = purrr::map(
+            data,
+            ~dplyr::filter(.x, lubridate::as_date(t) != lubridate::as_date(t)[1])
+          )
+        )
+    }
+
+    rep <- firsts %>%
+      dplyr::bind_rows(others) %>%
+      dplyr::arrange(as.numeric(i)) %>%
+      dplyr::select(-i, -group)
+
+
   # join by id
   n_before_join <- nrow(rep)
   rep <- rep %>%
     dplyr::group_by(id, press, hum) %>%
     dplyr::mutate(
       sgmnt = 1:dplyr::n(),
-      data  = purrr::map2(data, sgmnt, ~dplyr::mutate(.x, sgmnt = stringr::str_c(.y, sgmnt)))
+      data  = purrr::map2(
+        data,
+        sgmnt,
+        ~dplyr::mutate(.x, sgmnt = stringr::str_c(.y, sgmnt)))
     ) %>%
     dplyr::summarise(
       # collapse certain fields to retain information of the range of values
