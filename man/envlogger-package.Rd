@@ -2,13 +2,21 @@
 % Please edit documentation in R/envlogger-package.R
 \docType{package}
 \name{envlogger-package}
-\alias{envlogger}
 \alias{envlogger-package}
 \title{envlogger: Read, process and plot EnvLogger data}
 \description{
 Functions to handle EnvLogger data (\url{https://electricblue.eu/temperature-envloggers} or \url{https://electricblue.eu/relative-humidity-loggers}), from reading, processing and plotting. If data conforms to the CCTBON naming scheme, additional functionalities are available. ElectricBlue is a non-profit technology transfer startup creating research-oriented solutions for the scientific community (\url{https://electricblue.eu}).
+
+Functions to handle EnvLogger data (\url{https://electricblue.eu/temperature-envloggers} or \url{https://electricblue.eu/relative-humidity-loggers}), from reading, processing and plotting. If data conforms to the CCTBON naming scheme, additional functionalities are available. ElectricBlue is a non-profit technology transfer startup creating research-oriented solutions for the scientific community (\url{https://electricblue.eu}).
 }
 \seealso{
+Useful links:
+\itemize{
+  \item \url{https://github.com/ruiseabra/envlogger}
+  \item Report bugs at \url{https://github.com/ruiseabra/envlogger/issues}
+}
+
+
 Useful links:
 \itemize{
   \item \url{https://github.com/ruiseabra/envlogger}

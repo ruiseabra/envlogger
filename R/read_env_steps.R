@@ -88,24 +88,6 @@ env_fix <- function(
             anything_done <- TRUE
           }
 
-          ## DISCARD ENTRIES WITH TIME == NA
-          # purge_na_time
-          if (!is.na(fix$purge_na_time) & fix$purge_na_time) {
-            rep$data[[r]] <- dplyr::filter(
-              rep$data[[r]],
-              !is.na(t))
-            anything_done <- TRUE
-          }
-
-          ## DISCARD ENTRIES WITH DATA == NA
-          # purge_na_data
-          if (!is.na(fix$purge_na_data) & fix$purge_na_data) {
-            rep$data[[r]] <- dplyr::filter(
-              rep$data[[r]],
-              !is.na(temp))
-            anything_done <- TRUE
-          }
-
           ## SPLIT DATA WITH GAPS
           # split_time_gap
           split_yes <- !is.na(fix$split_time_gap) & fix$split_time_gap
@@ -186,8 +168,8 @@ env_fix <- function(
 
 # >> ----
 # dat = read_env_all(env_example()); lims = list(min = -30, max = +70, t0 = "2000-01-01", t1 = Sys.Date()); buffer_secs = 10
-# env_check_qual(dat, lims, buffer_secs)
-env_check_qual <- function(
+# env_check(dat, lims, buffer_secs)
+env_check <- function(
     dat,
     lims = list(
       min = -30,
@@ -217,18 +199,11 @@ env_check_qual <- function(
         bad_tmin = dplyr::if_else(tmin < lims$t0, "tmin", " "),
         bad_tmax = dplyr::if_else(tmax > lims$t1, "tmax", " "),
 
-        ## timestamps and data without NAs
-        bad_time_na = dplyr::if_else(purrr::map_lgl(data, ~.x$t %>% is.na() %>% any()), "time_na", " "),
-        bad_data_na = dplyr::if_else(purrr::map_lgl(data, ~.x %>% dplyr::select(-t) %>% is.na() %>% any()), "data_na", " "),
-
         ## timestamps are unidirectional, constant and without gaps
-        bad_time_gap = dplyr::if_else(
-          !purrr::map_lgl(
-            data,
-            t_check,
-            buffer_secs = buffer_secs),
-          "time_gap",
-          " ")
+        bad_time_gap = purrr::map_chr(
+          data,
+          t_check,
+          buffer_secs = buffer_secs)
       ) %>%
 
       # aggregate
@@ -252,7 +227,9 @@ env_check_qual <- function(
   if (nrow(rep_fix)) {
     new_vals <- list()
     for (i in seq_along(rep_fix$path)) {
-      f <- rep_fix$f_qual_issues[i] %>% stringr::str_split_1(",")
+      f <- rep_fix$f_qual_issues[i] %>%
+        stringr::str_split_1(",") %>%
+        purrr::map_chr(~stringr::str_split_1(.x, " ")[1])
       tmp <- list()
       if (any(f == "min"))      tmp$purge_temp_min = lims$min
       if (any(f == "max"))      tmp$purge_temp_min = lims$max
@@ -260,8 +237,6 @@ env_check_qual <- function(
       if (any(f == "tmin"))     tmp$purge_time_bef = lims$t0
       if (any(f == "t1"))       tmp$purge_time_aft = lims$t1
       if (any(f == "tmax"))     tmp$purge_time_aft = lims$t1
-      if (any(f == "time_na"))  tmp$purge_na_time  = TRUE
-      if (any(f == "data_na"))  tmp$purge_na_data  = TRUE
       if (any(f == "time_gap")) tmp$split_time_gap = TRUE
       new_vals[[i]] <- purrr::map(tmp, as.character)
     }
@@ -297,10 +272,10 @@ env_check_qual <- function(
 
 # >> ----
 # dat <- read_env_all(env_example())
-# env_rtc_drift(dat)
-# dat$rep$data[[24]]; env_rtc_drift(dat)$rep$data[[24]];
-# dat$rep$data[[24]] %>% tail(); env_rtc_drift(dat)$rep$data[[24]] %>% tail()
-env_rtc_drift <- function(
+# env_rtc(dat)
+# dat$rep$data[[24]]; env_rtc(dat)$rep$data[[24]];
+# dat$rep$data[[24]] %>% tail(); env_rtc(dat)$rep$data[[24]] %>% tail()
+env_rtc <- function(
     dat
 ) {
   dat$report <- dat$report %>%
@@ -879,7 +854,7 @@ env_generate_fixes <- function(
   # if there are metadata files to be generated, do so
   new_files <- c()
   if (n_files) {
-    new_files <- create_metadata_file(fixes, update = TRUE)
+    new_files <- metadata_create_file(fixes, update = TRUE)
   }
 
   # messages

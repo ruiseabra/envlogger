@@ -19,7 +19,7 @@ read_env_work <- function(
   # [1] read files ----
   dat <- run_section(
     use_dat       = FALSE,
-    fun           = read_env_all,
+    fun           = env_read,
     section_nm    = "reading files",
     show_progress = show_progress,
     paths         = paths,
@@ -44,64 +44,77 @@ read_env_work <- function(
     # [3] quality checks ----
     dat <- run_section(
       dat           = dat,
-      fun           = env_check_qual,
+      fun           = env_check,
       section_nm    = "performing quality checks",
       show_progress = show_progress,
       lims          = qual_lims
     )
 
-    # [4] correct clock drift ----
-    if (correct_rtc_drift) {
-      dat <- run_section(
-        dat           = dat,
-        fun           = env_rtc_drift,
-        section_nm    = "correcting clock drift",
-        show_progress = show_progress
-      )
-    }
+    some_qual_passed <- dat$msg_bullets %>%
+      purrr::list_c() %>%
+      stringr::str_detect("quality checks failed by all reports") %>%
+      any() %>%
+      magrittr::not()
 
-    # [5] interpolate to round time ----
-    interpolate <- !is.null(new_interval)
-    if (interpolate) {
-      dat <- run_section(
-        dat           = dat,
-        fun           = env_interpolate,
-        section_nm    = "interpolate to round time",
-        show_progress = show_progress,
-        new_interval  = new_interval
-      )
-    }
+    # if no report passed the quality checks,
+    # ... there's no point in running the code below
+    # so we skip to generating fixes
 
-    # [6] join by serial ----
-    if (join_serials) {
-      dat <- run_section(
-        dat              = dat,
-        fun              = env_join_by_serial,
-        section_nm       = "joining by serial",
-        show_progress    = show_progress,
-        overlap_max_mins = overlap_max_mins
-      )
-    }
+    # otherwise, proceed with working on the data
+    if (some_qual_passed) {
+      # [4] correct clock drift ----
+      if (correct_rtc_drift) {
+        dat <- run_section(
+          dat           = dat,
+          fun           = env_rtc,
+          section_nm    = "correcting clock drift",
+          show_progress = show_progress
+        )
+      }
 
-    # [7] join by id ----
-    if (join_ids) {
-      dat <- run_section(
-        dat              = dat,
-        fun              = env_join_by_id,
-        section_nm       = "joining by ids",
-        show_progress    = show_progress,
-        join_ids_trim_d1 = join_ids_trim_d1
-      )
-    }
+      # [5] interpolate to round time ----
+      interpolate <- !is.null(new_interval)
+      if (interpolate) {
+        dat <- run_section(
+          dat           = dat,
+          fun           = env_interpolate,
+          section_nm    = "interpolate to round time",
+          show_progress = show_progress,
+          new_interval  = new_interval
+        )
+      }
 
-    # [8] filter full days ----
-    if (full_days & interpolate) {
-      dat <- run_section(
-        dat           = dat,
-        fun           = env_full_days,
-        section_nm    = "filtering full days",
-        show_progress = show_progress
-      )
+      # [6] join by serial ----
+      if (join_serials) {
+        dat <- run_section(
+          dat              = dat,
+          fun              = env_join_by_serial,
+          section_nm       = "joining by serial",
+          show_progress    = show_progress,
+          overlap_max_mins = overlap_max_mins
+        )
+      }
+
+      # [7] join by id ----
+      if (join_ids) {
+        dat <- run_section(
+          dat              = dat,
+          fun              = env_join_by_id,
+          section_nm       = "joining by ids",
+          show_progress    = show_progress,
+          join_ids_trim_d1 = join_ids_trim_d1
+        )
+      }
+
+      # [8] filter full days ----
+      if (full_days & interpolate) {
+        dat <- run_section(
+          dat           = dat,
+          fun           = env_full_days,
+          section_nm    = "filtering full days",
+          show_progress = show_progress
+        )
+      }
     }
 
     # [9] generate metadata ----
@@ -156,7 +169,7 @@ read_env_work <- function(
 #'
 #' @section RTC drift correction:
 #' The correction implemented is linear and assumes that RTC drift accumulates at the same rate throughout the deployment. This assumption comes from the fact that all EnvLoggers feature temperature-compensated RTCs, which should result in drift being independent of temperature and only be affected by deployment length. EnvLoggers T2.4 accumulate about 10 to 15 minutes of RTC drift over a one-year deployment, which may be important to correct. EnvLoggers T7.3 and beyond feature a much more precise RTC and accumulate only 1 to 2 minutes of drift every year.
-#' The correction applied is based on `tdiff`, a numeric value in seconds that represents the difference between logger RTC time (`obs`; observed) and smartphone time (`ref`; refference) as `(obs - ref)`. This means that if the logger RTC (`obs`) ticks quicker than `ref`, `tdiff` becomes positive.
+#' The correction applied is based on `tdiff`, a numeric value in seconds that represents the difference between logger RTC time (`obs`; observed) and smartphone time (`ref`; reference) as `(obs - ref)`. This means that if the logger RTC (`obs`) ticks quicker than `ref`, `tdiff` becomes positive.
 #'
 #' * drift = logger - smartphone
 #' * pos -> logger time was faster -> timestamps must be compressed
@@ -166,7 +179,7 @@ read_env_work <- function(
 #' Perform linear interpolation to tidy EnvLogger data so that there's one reading every hour (00 mins, 00 secs) or other specified interval; !ALWAYS! applied before joining data from different reports, as otherwise the interpolation would generate artificial data filling any gap that may be present.
 #'
 #'
-#' @seealso [plot_env()]
+#' @seealso [metadata_create_file()], [env_ls()], [env_example()], [parse_id()], [add_info()], [summarise_env()], [plot_env()]
 #'
 #' @return
 #' A list with EnvLogger information (and data) from all reports, logfiles and metadata found in the target paths, divided into `$log`, `$metadata`, and `$report`. Additionally, if issues are found, the returned list may also include `$issues`, `$files_with_issues`, and `$files_created`.
@@ -183,7 +196,7 @@ read_env_work <- function(
 #' read_env(paths, new_interval = 60)
 # --- #
 # paths <- "~/Dropbox/RS/bio/datasets/temp_loggers/reports_tidy/_finalized_1.0/ptcax"
-# paths <- env_example(); avoid_pattern = "env_archive"; log_summary = show_progress = show_warnings = read_data = apply_fixes = correct_rtc_drift = join_serials = join_ids = full_days = auto_generate_fixes = auto_implement_fixes = TRUE; qual_lims = list(min = -30, max = +70, t0 = "2000-01-01", t1 = Sys.Date()); new_interval = 60; overlap_max_mins = 60; keep_flags = FALSE; join_ids_trim_d1
+# paths <- env_example(); avoid_pattern = "env_archive"; log_summary = show_progress = show_warnings = read_data = apply_fixes = correct_rtc_drift = join_serials = join_ids = full_days = auto_generate_fixes = auto_implement_fixes = TRUE; qual_lims = list(min = -30, max = +70, t0 = "2000-01-01", t1 = Sys.Date()); new_interval = 60; overlap_max_mins = 60; keep_flags = FALSE; join_ids_trim_d1 = FALSE
 # void <- env_example(delete_new_metadata_files = TRUE)
 # x <- read_env(env_example(), avoid_pattern, log_summary, show_progress, show_warnings, read_data, apply_fixes, qual_lims, correct_rtc_drift, new_interval, join_serials, join_ids, join_ids_trim_d1, overlap_max_mins, keep_flags, full_days, auto_generate_fixes, auto_implement_fixes)
 read_env <- function(
@@ -390,7 +403,7 @@ read_env <- function(
       }
 
       # list files
-      msg <- c(msg, path_issues_bullets(bad$fn, bad$issue, fn_width)) %>% bullets(" ", "")
+      msg <- c(msg, bullets_path_issues(bad$fn, bad$issue, fn_width)) %>% bullets(" ", "")
     }
 
     # fixed issues
@@ -399,7 +412,7 @@ read_env <- function(
       msg <- bullets(msg, "v", glue::glue("issues that have resolved automatically (total n = {nrow(ok)})"), col = "green")
 
       # list files
-      msg <- c(msg, path_issues_bullets(ok$fn, ok$issue, fn_width)) %>% bullets(" ", "")
+      msg <- c(msg, bullets_path_issues(ok$fn, ok$issue, fn_width)) %>% bullets(" ", "")
     }
   }
 

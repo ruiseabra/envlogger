@@ -13,7 +13,7 @@ Description: Functions to handle EnvLogger data (<https://electricblue.eu/temper
     ElectricBlue is a non-profit technology transfer startup creating research-oriented solutions for the scientific community (<https://electricblue.eu>).
 License: MIT + file LICENSE
 Encoding: UTF-8
-LazyData: true
+Language: en-US
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 Imports: 
@@ -23,6 +23,7 @@ Imports:
     fs,
     ggplot2,
     glue,
+    grDevices,
     lubridate,
     magrittr,
     pillar,
@@ -35,7 +36,6 @@ Imports:
     tidyr,
     tidyselect,
     utils,
-    xts,
-    zoo
+    xts
 URL: https://github.com/ruiseabra/envlogger
 BugReports: https://github.com/ruiseabra/envlogger/issues

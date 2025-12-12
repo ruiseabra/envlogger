@@ -17,6 +17,7 @@ read_env(
   new_interval = NULL,
   join_serials = TRUE,
   join_ids = TRUE,
+  join_ids_trim_d1 = TRUE,
   overlap_max_mins = 60 * 3,
   keep_flags = FALSE,
   full_days = TRUE,
@@ -49,6 +50,8 @@ read_env(
 
 \item{join_ids}{If set to \code{TRUE}, \code{join_serials} is forced to \code{TRUE} as well. Whether to join logger reports relating to the same ids (information specific to individual report files is discarded).}
 
+\item{join_ids_trim_d1}{When joining by ids, should the day when serials change be discarded?}
+
 \item{overlap_max_mins}{Maximum allowed overlap length in minutes. When data from two files overlaps by less than the stipulated number of minutes, the situation is normal and handled silently. Otherwise, an issue is reported.}
 
 \item{keep_flags}{Whether to retain columns flagging data processing steps, which are normally only used internally by \code{\link[=read_env]{read_env()}} and discarded before printing the output. Only relevant for debugging errors.}
@@ -79,7 +82,7 @@ Reads and organizes EnvLogger data and associated information. The following ste
 \section{RTC drift correction}{
 
 The correction implemented is linear and assumes that RTC drift accumulates at the same rate throughout the deployment. This assumption comes from the fact that all EnvLoggers feature temperature-compensated RTCs, which should result in drift being independent of temperature and only be affected by deployment length. EnvLoggers T2.4 accumulate about 10 to 15 minutes of RTC drift over a one-year deployment, which may be important to correct. EnvLoggers T7.3 and beyond feature a much more precise RTC and accumulate only 1 to 2 minutes of drift every year.
-The correction applied is based on \code{tdiff}, a numeric value in seconds that represents the difference between logger RTC time (\code{obs}; observed) and smartphone time (\code{ref}; refference) as \code{(obs - ref)}. This means that if the logger RTC (\code{obs}) ticks quicker than \code{ref}, \code{tdiff} becomes positive.
+The correction applied is based on \code{tdiff}, a numeric value in seconds that represents the difference between logger RTC time (\code{obs}; observed) and smartphone time (\code{ref}; reference) as \code{(obs - ref)}. This means that if the logger RTC (\code{obs}) ticks quicker than \code{ref}, \code{tdiff} becomes positive.
 \itemize{
 \item drift = logger - smartphone
 \item pos -> logger time was faster -> timestamps must be compressed
@@ -102,5 +105,5 @@ paths <- env_example("ptzzy", just_dir = TRUE)
 read_env(paths, new_interval = 60)
 }
 \seealso{
-\code{\link[=plot_env]{plot_env()}}
+\code{\link[=metadata_create_file]{metadata_create_file()}}, \code{\link[=env_ls]{env_ls()}}, \code{\link[=env_example]{env_example()}}, \code{\link[=parse_id]{parse_id()}}, \code{\link[=add_info]{add_info()}}, \code{\link[=summarise_env]{summarise_env()}}, \code{\link[=plot_env]{plot_env()}}
 }
