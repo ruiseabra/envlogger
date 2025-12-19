@@ -7,7 +7,7 @@
 
 <!-- badges: end -->
 
-Functions to handle EnvLogger data, from reading, processing and
+Functions to handle EnvLogger data, from reading to processing and
 plotting.  
 If data conforms to the CCTBON naming scheme, additional functionalities
 are available.

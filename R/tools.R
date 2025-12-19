@@ -1,5 +1,5 @@
 # >> ----
-# t1 = read_env_all(env_example("ptzzw")$rep[[1]], read_data = TRUE)$rep$data[[1]]$t; t2 = read_env_all(env_example("gap")$rep[[1]], read_data = TRUE)$rep$data[[1]]$t; buffer_secs = 10
+# t1 = env_read(env_example("ptzzw")$rep[[1]], read_data = TRUE)$rep$data[[1]]$t; t2 = env_read(env_example("gap")$rep[[1]], read_data = TRUE)$rep$data[[1]]$t; buffer_secs = 10
 # t_check(t1, buffer_secs); t_check(t2, buffer_secs)
 t_check <- function(t, buffer_secs = 10) {
   if (tibble::is_tibble(t)) t <- t$t
@@ -66,12 +66,31 @@ append_issues <- function(
 # >> ----
 # msg = c("v" = stringr::str_c(cli::col_green("bef"), "ore")); bullet = "x"; vec = stringr::str_c("af", cli::col_red("ter")); col = "yellow"
 # bullets(msg, bullet, vec, col) %>% cli::cli_bullets()
-bullets <- function(msg, bullet = " ", vec, col = NULL) {
-  COLS <- c("red", "blue", "yellow", "green", "white", "black", "cyan", "grey", "magenta", "sliver", "white", "none")
-  if (!is.null(col)) if (col %in% COLS) vec <- eval(parse(text = stringr::str_c("cli::col_", col)))(vec)
+bullets <- function(
+    msg = NULL,
+    bullet = " ",
+    vec = NULL,
+    col = NULL
+) {
+  if (is.null(msg)) msg <- c()
+  if (is.null(vec)) vec = " "
+  if (length(vec) != 1) cli::cli_abort(c("x" = "bullets can only handle a vec with length one"))
+  vec <- as.character(vec)
+
+  COLS <- c(
+    "red", "blue", "yellow", "green",
+    "white", "black", "cyan", "grey",
+    "magenta", "silver", "white", "none")
+
+  if (!is.null(col))
+    if (col %in% COLS)
+      vec <- eval(parse(text = stringr::str_c("cli::col_", col)))(vec)
+
+  # add bullet to names
   names(vec) <- rep_len(bullet, length(vec))
-  msg <- c(msg, vec)
-  msg
+
+  # return
+  c(msg, vec)
 }
 
 # >> ----

@@ -2,6 +2,8 @@
 # check()
 # install()
 # spelling::spell_check_package()
+# devtools::test_coverage_active_file()
+# test_coverage()
 
 #' @keywords internal
 "_PACKAGE"
@@ -173,4 +175,6 @@ example_files_to_keep <- c(
   "unsupported_file_3.txt"
   )
 
-
+# - adding tests
+# - minor modifications to functions to make them more robust to tests
+# - env_read was mistakingly deleted, now reinstated

@@ -39,3 +39,6 @@ Imports:
     xts
 URL: https://github.com/ruiseabra/envlogger
 BugReports: https://github.com/ruiseabra/envlogger/issues
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3

@@ -46,10 +46,13 @@
 # pattern  = "."; just_dir = FALSE
 # env_example(pattern, just_dir)
 env_example <- function(
-    pattern  = ".",
+    pattern  = NULL,
     just_dir = FALSE,
     delete_new_metadata_files = FALSE
 ) {
+  if (is.null(pattern)) pattern <- "."
+  if (any(pattern == "")) pattern[pattern == ""] <- "."
+
   folder <- system.file("extdata", package = "envlogger")
   files  <- folder %>%
     env_ls(list_unsupported = TRUE) %>%
